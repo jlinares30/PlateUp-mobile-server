@@ -5,6 +5,7 @@ const mealPlanSchema = new Schema({
   title: { type: String, required: true },
   description: String,
   isActive: { type: Boolean, default: true },
+  isPublic: { type: Boolean, default: false },
 
   days: [
     {
@@ -17,6 +18,6 @@ const mealPlanSchema = new Schema({
       ]
     }
   ]
-},{ timestamps: true });
+}, { timestamps: true });
 
 export default model('MealPlan', mealPlanSchema);

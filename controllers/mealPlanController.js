@@ -14,6 +14,7 @@ export const getMealPlans = async (req, res) => {
   try {
     const ADMIN_ID = process.env.ADMIN_ID;
     const { owner } = req.query;
+    console.log("GET /meal-plans Request - Query:", req.query, "User:", req.user?._id);
 
     let filter = {};
 
@@ -29,7 +30,8 @@ export const getMealPlans = async (req, res) => {
       filter = {
         $or: [
           { user: req.user._id },
-          { user: ADMIN_ID }
+          { user: ADMIN_ID },
+          { isPublic: true }
         ]
       };
     }
@@ -41,6 +43,7 @@ export const getMealPlans = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const formatted = mealPlans.map(formatPlan);
+    console.log(`GET /meal-plans Response - Found ${formatted.length} plans`);
 
     res.status(200).json({ data: formatted });
     // Note: Frontend handles { data: [...] } or [...] based on code: 
@@ -53,12 +56,14 @@ export const getMealPlans = async (req, res) => {
 
 export const getMyMealPlans = async (req, res) => {
   try {
+    console.log("GET /meal-plans/my Request - User:", req.user?._id);
     const mealPlans = await MealPlan.find({ user: req.user._id })
       .populate('days.meals.recipe', 'title')
       .populate('user', 'name email _id')
       .sort({ createdAt: -1 });
 
     const formatted = mealPlans.map(formatPlan);
+    console.log(`GET /meal-plans/my Response - Found ${formatted.length} plans`);
     res.status(200).json({ data: formatted });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching my meal plans', error });
@@ -68,6 +73,7 @@ export const getMyMealPlans = async (req, res) => {
 export const getMealPlanById = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("GET /meal-plans/:id Request - ID:", id, "User:", req.user?._id);
     if (!req.user?._id) {
       return res.status(401).json({ message: "No autorizado" });
     }
@@ -87,7 +93,9 @@ export const getMealPlanById = async (req, res) => {
     if (!mealPlan) {
       return res.status(404).json({ message: "Meal plan not found" });
     }
-    res.status(200).json(formatPlan(mealPlan));
+    const response = formatPlan(mealPlan);
+    console.log("GET /meal-plans/:id Response - Data:", JSON.stringify(response, null, 2));
+    res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching meal plan:", error);
     res.status(500).json({ message: "Error fetching meal plan", error: error.message });
@@ -98,6 +106,7 @@ export const getMealPlanById = async (req, res) => {
 export const createMealPlan = async (req, res) => {
   try {
     const { title, description, days } = req.body;
+    console.log("POST /meal-plans Request - Body:", JSON.stringify(req.body, null, 2));
     const newMealPlan = new MealPlan({
       user: req.user._id,
       title,
@@ -110,7 +119,9 @@ export const createMealPlan = async (req, res) => {
     // also populate user for consistency in return
     await savedPlan.populate('user', 'name email _id');
 
-    res.status(201).json(formatPlan(savedPlan));
+    const response = formatPlan(savedPlan);
+    console.log("POST /meal-plans Response - Created ID:", savedPlan._id);
+    res.status(201).json(response);
   } catch (error) {
     res.status(500).json({ message: 'Error creando el meal plan', error });
   }
@@ -119,6 +130,7 @@ export const createMealPlan = async (req, res) => {
 export const cloneMealPlan = async (req, res) => {
   try {
     const { id } = req.body; // ID of the plan to clone
+    console.log("POST /meal-plans/clone Request - ID to clone:", id, "User:", req.user?._id);
     if (!id) return res.status(400).json({ message: "ID parameter required" });
 
     const originalPlan = await MealPlan.findById(id);
@@ -136,10 +148,15 @@ export const cloneMealPlan = async (req, res) => {
     });
 
     const savedPlan = await newPlan.save();
-    await savedPlan.populate('days.meals.recipe.title');
-    await savedPlan.populate('user', 'name email _id');
 
-    res.status(201).json({ data: formatPlan(savedPlan) });
+    // Re-fetch to ensure population matches exactly what fetch endpoints return
+    const finalPlan = await MealPlan.findById(savedPlan._id)
+      .populate('user', 'name email _id')
+      .populate('days.meals.recipe', 'title');
+
+    const response = formatPlan(finalPlan);
+    console.log("POST /meal-plans/clone Response - New Plan ID:", finalPlan._id, "Owner:", response.owner);
+    res.status(201).json({ data: response });
   } catch (error) {
     console.error("Clone error:", error);
     res.status(500).json({ message: "Error cloning meal plan", error: error.message });
@@ -150,6 +167,7 @@ export const updateMealPlan = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, isActive, days } = req.body;
+    console.log("PUT /meal-plans/:id Request - ID:", id, "Body:", JSON.stringify(req.body, null, 2));
     const mealPlan = await MealPlan.findOneAndUpdate(
       { _id: id, user: req.user._id },
       { title, description, isActive, days },
