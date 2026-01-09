@@ -6,7 +6,7 @@ const mealPlanSchema = new Schema({
   description: String,
   isActive: { type: Boolean, default: true },
   isPublic: { type: Boolean, default: false },
-
+  isSystem: { type: Boolean, default: false },
   days: [
     {
       day: { type: String, required: true },

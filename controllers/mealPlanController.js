@@ -12,45 +12,24 @@ const formatPlan = (plan) => {
 
 export const getMealPlans = async (req, res) => {
   try {
-    const ADMIN_ID = process.env.ADMIN_ID;
-    const { owner } = req.query;
-    console.log("GET /meal-plans Request - Query:", req.query, "User:", req.user?._id);
+    const { _id: userId } = req.user;
+    let filter = {
+      user: { $ne: userId }, // Exclude my own plans  
+      $or: [
+        { isSystem: true },
+        { isPublic: true }
+      ]
+    };
 
-    let filter = {};
-
-    if (owner) {
-      // If owner query param is present, filter by it
-      filter = { user: owner };
-    } else {
-      // Default behavior: "Public" view (Admin plans) + My plans
-      // Adjusting logic: The frontend uses /meal-plans for "Public" (Discover).
-      // Usually Discover should show Admin plans or All Public Plans.
-      // Keeping existing logic of (User OR Admin) for safety, but typically Discover might just be Admin plans?
-      // Let's keep it inclusive: My plans + Admin plans.
-      filter = {
-        $or: [
-          { user: req.user._id },
-          { user: ADMIN_ID },
-          { isPublic: true }
-        ]
-      };
-    }
-
-    // Apply filter
     const mealPlans = await MealPlan.find(filter)
       .populate('days.meals.recipe', 'title')
-      .populate('user', 'name email _id') // Populate user to get owner details
+      .populate('user', 'name email _id')
       .sort({ createdAt: -1 });
 
     const formatted = mealPlans.map(formatPlan);
-    console.log(`GET /meal-plans Response - Found ${formatted.length} plans`);
-
     res.status(200).json({ data: formatted });
-    // Note: Frontend handles { data: [...] } or [...] based on code: 
-    // "resPublic.data?.data ... : resPublic.data"
-    // We'll wrap in data object for best practice, frontend is ready for it.
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching meal plans', error });
+    res.status(500).json({ message: 'Error', error });
   }
 };
 
@@ -77,15 +56,13 @@ export const getMealPlanById = async (req, res) => {
     if (!req.user?._id) {
       return res.status(401).json({ message: "No autorizado" });
     }
-    const ADMIN_ID = process.env.ADMIN_ID;
+    const { _id: userId } = req.user;
 
     const mealPlan = await MealPlan.findOne({
       _id: id,
       $or: [
-        { user: req.user._id },
-        { user: ADMIN_ID },
-        // If we want to allow viewing any public plan (by ID), we might need to relax this if the plan is public. 
-        // For now adhering to strict security or Admin/Owner access.
+        { user: userId },
+        { isSystem: true },
       ]
     }).populate("days.meals.recipe", "_id title imageUrl")
       .populate('user', 'name email _id');
