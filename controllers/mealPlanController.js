@@ -3,10 +3,13 @@ import MealPlan from "../models/MealPlan.js";
 // Helper to format plan (map user to owner)
 const formatPlan = (plan) => {
   const p = plan.toObject ? plan.toObject() : plan;
+
+  const userId = p.user?._id || p.user;
   return {
     ...p,
     owner: p.user, // Map user to owner for frontend compatibility
-    ownerId: p.user?._id || p.user // Ensure ownerId is available
+    ownerId: String(userId), // Ensure ownerId is available
+    daysCount: p.days?.length || 0
   };
 };
 
@@ -149,7 +152,8 @@ export const updateMealPlan = async (req, res) => {
       { _id: id, user: req.user._id },
       { title, description, isActive, days },
       { new: true }
-    ).populate('user', 'name email _id');
+    ).populate('user', 'name email _id')
+      .populate('days.meals.recipe', 'title');
 
     if (!mealPlan) {
       return res.status(404).json({ message: 'Meal plan not found' });
