@@ -5,6 +5,8 @@ import authRoutes from './routes/authRoutes.js';
 import ingredientsRoutes from './routes/ingredientsRoutes.js';
 import recipesRoutes from './routes/recipeRoutes.js';
 import mealPlanRoutes from './routes/mealPlanRoutes.js';
+import pantryRoutes from './routes/pantryRoutes.js';
+import shoppingListRoutes from './routes/shoppingListRoutes.js';
 import cors from 'cors';
 
 const app = express();
@@ -25,14 +27,16 @@ async function start() {
     app.use("/api/ingredients", ingredientsRoutes);
     app.use("/api/recipes", recipesRoutes);
     app.use("/api/meal-plans", mealPlanRoutes);
+    app.use("/api/pantry", pantryRoutes);
+    app.use("/api/shopping-list", shoppingListRoutes);
 
     app.get("/api/health", (req, res) => {
       res.json({ ok: true, message: "Mongo conectado" });
     });
 
     app.listen(ENV.PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor corriendo en http://0.0.0.0:${ENV.PORT}`);
-});
+      console.log(`🚀 Servidor corriendo en http://0.0.0.0:${ENV.PORT}`);
+    });
 
   } catch (err) {
     console.error("❌ Error conectando a MongoDB:", err.message);
