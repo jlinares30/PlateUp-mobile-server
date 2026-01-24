@@ -87,10 +87,17 @@ export const createMealPlan = async (req, res) => {
   try {
     const { title, description, days } = req.body;
     console.log("POST /meal-plans Request - Body:", JSON.stringify(req.body, null, 2));
+
+    let imagePath = null;
+    if (req.file) {
+      imagePath = req.file.path;
+    }
+
     const newMealPlan = new MealPlan({
       user: req.user._id,
       title,
       description,
+      image: imagePath,
       days
     });
 
@@ -148,9 +155,15 @@ export const updateMealPlan = async (req, res) => {
     const { id } = req.params;
     const { title, description, isActive, days } = req.body;
     console.log("PUT /meal-plans/:id Request - ID:", id, "Body:", JSON.stringify(req.body, null, 2));
+
+    const updateData = { title, description, isActive, days };
+    if (req.file) {
+      updateData.image = req.file.path;
+    }
+
     const mealPlan = await MealPlan.findOneAndUpdate(
       { _id: id, user: req.user._id },
-      { title, description, isActive, days },
+      updateData,
       { new: true }
     ).populate('user', 'name email _id')
       .populate('days.meals.recipe', 'title');

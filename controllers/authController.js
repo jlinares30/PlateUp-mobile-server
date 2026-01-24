@@ -6,7 +6,11 @@ export async function register(req, res) {
   const { name, email, password } = req.body;
   try {
     const hash = await _hash(password, 10);
-    const user = new User({ name, email, password: hash });
+    const userData = { name, email, password: hash };
+    if (req.file) {
+      userData.image = req.file.path;
+    }
+    const user = new User(userData);
     await user.save();
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
@@ -30,7 +34,8 @@ export async function login(req, res) {
     user: {
       id: user._id,
       name: user.name,
-      email: user.email
+      email: user.email,
+      image: user.image
     },
   });
 }
@@ -57,6 +62,10 @@ export async function updateProfile(req, res) {
       user.password = await _hash(password, 10);
     }
 
+    if (req.file) {
+      user.image = req.file.path;
+    }
+
     await user.save();
 
     res.json({
@@ -64,7 +73,8 @@ export async function updateProfile(req, res) {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        image: user.image
       }
     });
 

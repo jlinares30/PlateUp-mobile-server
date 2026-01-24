@@ -4,6 +4,7 @@ const mealPlanSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User' },
   title: { type: String, required: true },
   description: String,
+  image: String,
   isActive: { type: Boolean, default: true },
   isPublic: { type: Boolean, default: false },
   isSystem: { type: Boolean, default: false },
