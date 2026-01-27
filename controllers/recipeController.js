@@ -1,5 +1,7 @@
 import Recipe from '../models/Recipe.js'
 import User from '../models/User.js'
+import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 export async function getFilteredRecipes(req, res) {
   const user = await User.findById(req.userId);
@@ -105,56 +107,49 @@ export const getRecipesByIngredients = async (req, res) => {
 };
 
 export const createRecipe = async (req, res) => {
-  const { title, description, ingredients, steps, time, category, difficulty } = req.body;
-
   try {
-    let parsedIngredients = ingredients;
-    let parsedSteps = steps;
+    if (!req.file) return res.status(400).json({ message: "Falta la imagen" });
 
-    if (typeof ingredients === 'string') {
-      try {
-        parsedIngredients = JSON.parse(ingredients);
-      } catch (e) {
-        parsedIngredients = [];
-      }
-    }
-    if (typeof steps === 'string') {
-      try {
-        parsedSteps = JSON.parse(steps);
-      } catch (e) {
-        parsedSteps = [];
-      }
-    }
+    // PASO 1: Subida manual a Cloudinary usando el archivo ya guardado en local
+    console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      upload_preset: 'meal_plans_app'
+    });
+    console.log("✅ Subida exitosa:", result.secure_url);
 
+    // PASO 2: Preparar datos para MongoDB con la URL de Cloudinary
     const recipeData = {
-      title,
-      description,
-      ingredients: parsedIngredients,
-      steps: parsedSteps,
-      time,
-      category,
-      difficulty,
-      createdBy: req.userId,
-      user: req.userId // Setting both to ensure compatibility
+      ...req.body,
+      ingredients: JSON.parse(req.body.ingredients),
+      steps: JSON.parse(req.body.steps),
+      image: result.secure_url, // URL de la nube
+      user: req.user._id,
+      createdBy: req.user._id
     };
 
-    if (req.file) {
-      recipeData.image = req.file.path;
-    }
-
+    // PASO 3: Guardar en DB y borrar archivo local
     const recipe = new Recipe(recipeData);
-
     await recipe.save();
-    // Only populate if ingredients exist and are valid ObjectIds handling
-    // await recipe.populate('ingredients.ingredient'); 
+    console.log("✅ Receta guardada en DB");
+
+    fs.unlinkSync(req.file.path); // Borra el archivo de /uploads
+    console.log("🗑️ Archivo local eliminado");
 
     res.status(201).json(recipe);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: 'Error creating recipe', error: error.message });
+    console.error("❌ Error en el proceso:", error);
+    // Intentar borrar archivo local si hubo error y el archivo existe
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+        console.log("🗑️ Archivo local eliminado tras error");
+      } catch (unlinkError) {
+        console.error("Error eliminando archivo local:", unlinkError);
+      }
+    }
+    res.status(500).json({ message: "Error al procesar imagen o receta", error: error.message });
   }
 };
-
 
 export const updateRecipe = async (req, res) => {
   const { id } = req.params;

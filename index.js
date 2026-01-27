@@ -1,18 +1,65 @@
 import express from "express";
 import mongoose from "mongoose";
 import { ENV } from "./config/env.js";
+import cors from 'cors';
+import path from 'path';
 import authRoutes from './routes/authRoutes.js';
 import ingredientsRoutes from './routes/ingredientsRoutes.js';
 import recipesRoutes from './routes/recipeRoutes.js';
 import mealPlanRoutes from './routes/mealPlanRoutes.js';
 import pantryRoutes from './routes/pantryRoutes.js';
 import shoppingListRoutes from './routes/shoppingListRoutes.js';
-import cors from 'cors';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
-app.use(express.json());
-app.use(cors());
+/* ================== GLOBAL MIDDLEWARES ================== */
+
+// CORS
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Logger
+app.use((req, res, next) => {
+  console.log('📦 Content-Type:', req.headers['content-type']);
+  next();
+});
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ⚠️ Body parsers SOLO para JSON / urlencoded
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+/* ================== ROUTES ================== */
+
+app.use("/api/auth", authRoutes);
+app.use("/api/ingredients", ingredientsRoutes);
+app.use("/api/recipes",
+  (req, res, next) => {
+    console.log('📦 Middleware DEBUG:');
+    console.log('Headers:', req.headers);
+    console.log('Method:', req.method);
+    console.log('Content-Type:', req.get('content-type'));
+    next();
+  },
+  recipesRoutes);
+app.use("/api/meal-plans", mealPlanRoutes);
+app.use("/api/pantry", pantryRoutes);
+app.use("/api/shopping-list", shoppingListRoutes);
+
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true, message: "Mongo conectado" });
+});
+
+/* ================== START SERVER ================== */
 
 async function start() {
   try {
@@ -21,18 +68,6 @@ async function start() {
     });
 
     console.log("✅ Conectado a MongoDB");
-
-    // Rutas
-    app.use("/api/auth", authRoutes);
-    app.use("/api/ingredients", ingredientsRoutes);
-    app.use("/api/recipes", recipesRoutes);
-    app.use("/api/meal-plans", mealPlanRoutes);
-    app.use("/api/pantry", pantryRoutes);
-    app.use("/api/shopping-list", shoppingListRoutes);
-
-    app.get("/api/health", (req, res) => {
-      res.json({ ok: true, message: "Mongo conectado" });
-    });
 
     app.listen(ENV.PORT, "0.0.0.0", () => {
       console.log(`🚀 Servidor corriendo en http://0.0.0.0:${ENV.PORT}`);
@@ -45,86 +80,3 @@ async function start() {
 }
 
 start();
-
-
-/*import { db } from "./config/db.js";
-import { favoritesTable } from "./db/schema.js";
-import { and, eq } from "drizzle-orm";
-import job from "./config/cron.js";
-
-const app = express();
-const PORT = ENV.PORT || 5001;
-
-if (ENV.NODE_ENV === "production") job.start();
-
-app.use(express.json());
-
-app.get("/api/health", (req, res) => {
-  res.status(200).json({ success: true });
-});
-
-app.post("/api/favorites", async (req, res) => {
-  try {
-    const { userId, recipeId, title, image, cookTime, servings } = req.body;
-
-    if (!userId || !recipeId || !title) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const newFavorite = await db
-      .insert(favoritesTable)
-      .values({
-        userId,
-        recipeId,
-        title,
-        image,
-        cookTime,
-        servings,
-      })
-      .returning();
-
-    res.status(201).json(newFavorite[0]);
-  } catch (error) {
-    console.log("Error adding favorite", error);
-    res.status(500).json({ error: "Something went wrong" });
-  }
-});
-
-app.get("/api/favorites/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    const userFavorites = await db
-      .select()
-      .from(favoritesTable)
-      .where(eq(favoritesTable.userId, userId));
-
-    res.status(200).json(userFavorites);
-  } catch (error) {
-    console.log("Error fetching the favorites", error);
-    res.status(500).json({ error: "Something went wrong" });
-  }
-});
-
-app.delete("/api/favorites/:userId/:recipeId", async (req, res) => {
-  try {
-    const { userId, recipeId } = req.params;
-
-    await db
-      .delete(favoritesTable)
-      .where(
-        and(eq(favoritesTable.userId, userId), eq(favoritesTable.recipeId, parseInt(recipeId)))
-      );
-
-    res.status(200).json({ message: "Favorite removed successfully" });
-  } catch (error) {
-    console.log("Error removing a favorite", error);
-    res.status(500).json({ error: "Something went wrong" });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log("Server is running on PORT:", PORT);
-}); */
-
-
