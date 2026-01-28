@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { getRecipes, getRecipeById, createRecipe, updateRecipe, deleteRecipe, getRecipesByIngredients } from '../controllers/recipeController.js';
+import { createRecipe, deleteRecipe, getFavorites, getRecipeById, getRecipes, getRecipesByIngredients, toggleFavorite, updateRecipe } from '../controllers/recipeController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
 const router = Router();
 
 router.get('/', authMiddleware, getRecipes);
+router.get('/my', authMiddleware, getMyRecipes);
 router.get('/:id', authMiddleware, getRecipeById);
 router.post(
     '/',
@@ -35,5 +36,8 @@ router.put('/:id', authMiddleware, upload.single('image'), updateRecipe);
 router.delete('/:id', authMiddleware, deleteRecipe);
 router.post('/by-ingredients',
     authMiddleware, getRecipesByIngredients);
+router.post('/:id/favorite', authMiddleware, toggleFavorite);
+router.get('/favorites/all', authMiddleware, getFavorites);
+
 
 export default router;

@@ -1,6 +1,6 @@
-import MealPlan from "../models/MealPlan.js";
-import cloudinary from '../config/cloudinary.js';
 import fs from 'fs';
+import cloudinary from '../config/cloudinary.js';
+import MealPlan from "../models/MealPlan.js";
 
 // Helper to format plan (map user to owner)
 const formatPlan = (plan) => {
@@ -87,8 +87,22 @@ export const getMealPlanById = async (req, res) => {
 
 export const createMealPlan = async (req, res) => {
   try {
-    const { title, description, days } = req.body;
-    console.log("POST /meal-plans Request - Body:", JSON.stringify(req.body, null, 2));
+    const { title, description } = req.body;
+    let { days, isPublic, isActive } = req.body;
+
+    // Parse JSON fields if they come as strings (Multipart data)
+    if (typeof days === 'string') {
+      try {
+        days = JSON.parse(days);
+      } catch (e) {
+        console.error("Error parsing days:", e);
+        days = [];
+      }
+    }
+    if (typeof isPublic === 'string') isPublic = isPublic === 'true';
+    if (typeof isActive === 'string') isActive = isActive === 'true';
+
+    console.log("POST /meal-plans Request - Body:", JSON.stringify({ title, description, isPublic, isActive }, null, 2));
 
     let imagePath = null;
     if (req.file) {
@@ -115,7 +129,9 @@ export const createMealPlan = async (req, res) => {
       title,
       description,
       image: imagePath,
-      days
+      days,
+      isPublic,
+      isActive
     });
 
     const savedPlan = await newMealPlan.save();

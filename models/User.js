@@ -21,7 +21,8 @@ const userSchema = new Schema({
       unit: String,
       checked: { type: Boolean, default: false }
     }
-  ]
+  ],
+  favorites: [{ type: Schema.Types.ObjectId, ref: 'Recipe' }]
 });
 
 export default model('User', userSchema);
