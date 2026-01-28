@@ -1,4 +1,6 @@
 import MealPlan from "../models/MealPlan.js";
+import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 // Helper to format plan (map user to owner)
 const formatPlan = (plan) => {
@@ -90,7 +92,22 @@ export const createMealPlan = async (req, res) => {
 
     let imagePath = null;
     if (req.file) {
-      imagePath = req.file.path;
+      console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          upload_preset: 'meal_plans_app'
+        });
+        imagePath = result.secure_url;
+        console.log("✅ Subida exitosa:", imagePath);
+
+        fs.unlinkSync(req.file.path); // Borra el archivo de /uploads
+        console.log("🗑️ Archivo local eliminado");
+      } catch (uploadError) {
+        console.error("❌ Error subiendo a Cloudinary:", uploadError);
+        // Si falla, intentamos borrar el local por si acaso
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        return res.status(500).json({ message: "Error al subir imagen", error: uploadError.message });
+      }
     }
 
     const newMealPlan = new MealPlan({
@@ -110,6 +127,11 @@ export const createMealPlan = async (req, res) => {
     console.log("POST /meal-plans Response - Created ID:", savedPlan._id);
     res.status(201).json(response);
   } catch (error) {
+    console.error("Error creating meal plan:", error);
+    // Clean up file if it exists and wasn't processed
+    if (req.file && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) { }
+    }
     res.status(500).json({ message: 'Error creando el meal plan', error });
   }
 };
@@ -157,8 +179,23 @@ export const updateMealPlan = async (req, res) => {
     console.log("PUT /meal-plans/:id Request - ID:", id, "Body:", JSON.stringify(req.body, null, 2));
 
     const updateData = { title, description, isActive, days };
+
     if (req.file) {
-      updateData.image = req.file.path;
+      console.log("🚀 Iniciando subida a Cloudinary (Update):", req.file.path);
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          upload_preset: 'meal_plans_app'
+        });
+        updateData.image = result.secure_url;
+        console.log("✅ Subida exitosa:", updateData.image);
+
+        fs.unlinkSync(req.file.path);
+        console.log("🗑️ Archivo local eliminado");
+      } catch (uploadError) {
+        console.error("❌ Error subiendo a Cloudinary:", uploadError);
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        return res.status(500).json({ message: "Error al subir imagen", error: uploadError.message });
+      }
     }
 
     const mealPlan = await MealPlan.findOneAndUpdate(
@@ -169,10 +206,16 @@ export const updateMealPlan = async (req, res) => {
       .populate('days.meals.recipe', 'title');
 
     if (!mealPlan) {
+      // If we uploaded an image but the plan wasn't found, we technically wasted an upload, 
+      // but strictly speaking we don't need to delete it from Cloudinary here unless we want to be very strict.
       return res.status(404).json({ message: 'Meal plan not found' });
     }
     res.status(200).json(formatPlan(mealPlan));
   } catch (error) {
+    console.error("Error updating meal plan:", error);
+    if (req.file && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) { }
+    }
     res.status(500).json({ message: 'Error updating meal plan', error });
   }
 };
