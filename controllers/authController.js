@@ -68,7 +68,12 @@ export async function updateProfile(req, res) {
       // Subida manual a Cloudinary
       const result = await cloudinary.uploader.upload(req.file.path, {
         upload_preset: 'meal_plans_app',
-        folder: 'users'
+        folder: 'users',
+        transformation: [
+          { width: 800, height: 800, crop: "limit" },
+          { quality: 35 },
+          { fetch_format: "auto" }
+        ]
       });
       user.image = result.secure_url;
       // Borrar archivo local

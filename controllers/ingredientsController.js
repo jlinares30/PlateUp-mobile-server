@@ -48,7 +48,12 @@ export const createIngredient = async (req, res) => {
             console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
                 upload_preset: 'meal_plans_app',
-                folder: 'ingredients'
+                folder: 'ingredients',
+                transformation: [
+                    { width: 800, height: 800, crop: "limit" },
+                    { quality: 35 },
+                    { fetch_format: "auto" }
+                ]
             });
             console.log("✅ Subida exitosa:", result.secure_url);
             imageUrl = result.secure_url;

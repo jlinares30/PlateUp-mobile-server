@@ -109,7 +109,12 @@ export const createMealPlan = async (req, res) => {
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           upload_preset: 'meal_plans_app',
-          folder: 'mealplans'
+          folder: 'mealplans',
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: 35 },
+            { fetch_format: "auto" }
+          ]
         });
         imagePath = result.secure_url;
         console.log("✅ Subida exitosa:", imagePath);
