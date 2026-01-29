@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import { hash as _hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 export async function register(req, res) {
   const { name, email, password } = req.body;
@@ -63,7 +65,14 @@ export async function updateProfile(req, res) {
     }
 
     if (req.file) {
-      user.image = req.file.path;
+      // Subida manual a Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        upload_preset: 'meal_plans_app',
+        folder: 'users'
+      });
+      user.image = result.secure_url;
+      // Borrar archivo local
+      fs.unlinkSync(req.file.path);
     }
 
     await user.save();
@@ -79,6 +88,14 @@ export async function updateProfile(req, res) {
     });
 
   } catch (error) {
+    // Limpiar archivo si hubo error
+    if (req.file && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        console.error("Error deleting local file:", unlinkError);
+      }
+    }
     res.status(500).json({ message: 'Error updating profile', error: error.message });
   }
 }

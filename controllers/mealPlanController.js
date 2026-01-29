@@ -108,7 +108,8 @@ export const createMealPlan = async (req, res) => {
       console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
-          upload_preset: 'meal_plans_app'
+          upload_preset: 'meal_plans_app',
+          folder: 'mealplans'
         });
         imagePath = result.secure_url;
         console.log("✅ Subida exitosa:", imagePath);
