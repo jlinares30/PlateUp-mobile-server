@@ -1,16 +1,16 @@
+import cors from 'cors';
 import express from "express";
 import mongoose from "mongoose";
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { ENV } from "./config/env.js";
-import cors from 'cors';
-import path from 'path';
 import authRoutes from './routes/authRoutes.js';
 import ingredientsRoutes from './routes/ingredientsRoutes.js';
-import recipesRoutes from './routes/recipeRoutes.js';
 import mealPlanRoutes from './routes/mealPlanRoutes.js';
 import pantryRoutes from './routes/pantryRoutes.js';
+import recipesRoutes from './routes/recipeRoutes.js';
 import shoppingListRoutes from './routes/shoppingListRoutes.js';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import statsRoutes from './routes/statsRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,6 +54,7 @@ app.use("/api/recipes",
 app.use("/api/meal-plans", mealPlanRoutes);
 app.use("/api/pantry", pantryRoutes);
 app.use("/api/shopping-list", shoppingListRoutes);
+app.use("/api/stats", statsRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "Mongo conectado" });
