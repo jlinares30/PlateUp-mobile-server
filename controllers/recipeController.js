@@ -221,3 +221,38 @@ export const filterRecipes = async (req, res) => {
     res.status(500).json({ message: 'Error filtering recipes' });
   }
 };
+
+
+export const getFavorites = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    const favorites = user.favorites;
+    const recipes = await Recipe.find({ _id: { $in: favorites } });
+    res.status(200).json(recipes);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching favorites' });
+  }
+};
+
+export const toggleFavorite = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const recipe = await Recipe.findById(id);
+    if (!recipe) {
+      return res.status(404).json({ message: 'Recipe not found' });
+    }
+    if (user.favorites.includes(id)) {
+      user.favorites.pull(id);
+    } else {
+      user.favorites.push(id);
+    }
+    await user.save();
+    res.status(200).json({ message: 'Favorite toggled successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error toggling favorite' });
+  }
+};

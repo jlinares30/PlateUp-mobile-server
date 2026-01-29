@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createRecipe, deleteRecipe, getFavorites, getRecipeById, getRecipes, getRecipesByIngredients, toggleFavorite, updateRecipe } from '../controllers/recipeController.js';
+import { createRecipe, deleteRecipe, getFavorites, getMyRecipes, getRecipeById, getRecipes, getRecipesByIngredients, toggleFavorite, updateRecipe } from '../controllers/recipeController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
 const router = Router();
