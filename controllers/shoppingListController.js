@@ -93,3 +93,19 @@ export const removeFromShoppingList = async (req, res) => {
         res.status(500).json({ message: 'Error removing from shopping list', error: error.message });
     }
 };
+// Clear entire shopping list
+export const clearShoppingList = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user.shoppingList = [];
+        await user.save();
+
+        res.json({ message: 'Shopping list cleared', shoppingList: [] });
+    } catch (error) {
+        res.status(500).json({ message: 'Error clearing shopping list', error: error.message });
+    }
+};
