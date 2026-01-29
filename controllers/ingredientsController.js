@@ -1,14 +1,26 @@
 import Ingredient from '../models/Ingredient.js'
+import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 export const getAllIngredients = async (req, res) => {
     try {
         const { query } = req.query;
 
-        const filter = query
+        const baseFilter = {
+            $or: [
+                { isSystem: true },
+                { isPublic: true },
+                { user: req.user._id }
+            ]
+        };
+
+        const searchFilter = query
             ? { name: { $regex: query, $options: "i" } }
             : {};
 
-        const ingredients = await Ingredient.find(filter);
+        const finalFilter = { ...baseFilter, ...searchFilter };
+
+        const ingredients = await Ingredient.find(finalFilter);
         res.status(200).json(ingredients);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching ingredients' })
@@ -31,16 +43,129 @@ export const getIngredientById = async (req, res) => {
 
 export const createIngredient = async (req, res) => {
     try {
-        const ingredientData = { ...req.body };
+        let imageUrl = null;
         if (req.file) {
-            ingredientData.image = req.file.path;
+            console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                upload_preset: 'meal_plans_app'
+            });
+            console.log("✅ Subida exitosa:", result.secure_url);
+            imageUrl = result.secure_url;
+            fs.unlinkSync(req.file.path);
         }
+
+        const ingredientData = {
+            ...req.body,
+            user: req.user._id
+        };
+
+        if (imageUrl) {
+            ingredientData.image = imageUrl;
+        }
+
+        // Parse complex fields if they are strings (from FormData)
+        if (typeof ingredientData.macros === 'string') {
+            try {
+                ingredientData.macros = JSON.parse(ingredientData.macros);
+            } catch (e) {
+                console.error("Error parsing macros:", e);
+            }
+        }
+
+        if (typeof ingredientData.tags === 'string') {
+            try {
+                ingredientData.tags = JSON.parse(ingredientData.tags);
+            } catch (e) {
+                console.error("Error parsing tags:", e);
+            }
+        }
+
+        // Handle booleans
+        if (req.body.isPublic !== undefined) {
+            ingredientData.isPublic = req.body.isPublic === 'true' || req.body.isPublic === true;
+        }
+        if (req.body.isSystem !== undefined) {
+            ingredientData.isSystem = req.body.isSystem === 'true' || req.body.isSystem === true;
+        }
+
 
         const newIngredient = new Ingredient(ingredientData);
         const savedIngredient = await newIngredient.save();
         res.status(201).json(savedIngredient);
     }
     catch (error) {
-        res.status(500).json({ message: 'Error creating ingredient' })
+        console.error("Error creating ingredient:", error);
+        // Clean up file if error
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ message: 'Error creating ingredient', error: error.message })
     }
 }
+
+export const updateIngredient = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const updateData = { ...req.body };
+
+        if (req.file) {
+            console.log("🚀 Iniciando subida a Cloudinary (update):", req.file.path);
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                upload_preset: 'meal_plans_app'
+            });
+            updateData.image = result.secure_url;
+            fs.unlinkSync(req.file.path);
+        }
+
+        // Parse complex fields
+        if (typeof updateData.macros === 'string') {
+            try {
+                updateData.macros = JSON.parse(updateData.macros);
+            } catch (e) {
+                // ignore or log
+            }
+        }
+        if (typeof updateData.tags === 'string') {
+            try {
+                updateData.tags = JSON.parse(updateData.tags);
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // Handle booleans
+        if (updateData.isPublic !== undefined) {
+            updateData.isPublic = updateData.isPublic === 'true' || updateData.isPublic === true;
+        }
+        if (updateData.isSystem !== undefined) {
+            updateData.isSystem = updateData.isSystem === 'true' || updateData.isSystem === true;
+        }
+
+        const updatedIngredient = await Ingredient.findByIdAndUpdate(id, updateData, { new: true });
+
+        if (!updatedIngredient) {
+            return res.status(404).json({ message: 'Ingredient not found' });
+        }
+
+        res.status(200).json(updatedIngredient);
+    } catch (error) {
+        console.error("Error updating ingredient:", error);
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ message: 'Error updating ingredient' });
+    }
+};
+
+export const deleteIngredient = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const deletedIngredient = await Ingredient.findByIdAndDelete(id);
+        if (!deletedIngredient) {
+            return res.status(404).json({ message: 'Ingredient not found' });
+        }
+        res.status(200).json({ message: 'Ingredient deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting ingredient' });
+    }
+};

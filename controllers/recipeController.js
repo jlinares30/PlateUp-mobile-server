@@ -1,11 +1,10 @@
-import Recipe from '../models/Recipe.js'
-import User from '../models/User.js'
-import cloudinary from '../config/cloudinary.js';
 import fs from 'fs';
+import cloudinary from '../config/cloudinary.js';
+import Recipe from '../models/Recipe.js';
 
 export async function getFilteredRecipes(req, res) {
-  const user = await User.findById(req.userId);
-  const userIngredients = user.ingredients;
+  // Use req.user set by middleware
+  const userIngredients = req.user.ingredients;
 
   const recipes = await Recipe.find();
 
@@ -24,9 +23,6 @@ export const getRecipes = async (req, res) => {
     if (!req.user?._id) {
       return res.status(401).json({ message: "No autorizado" });
     }
-
-    const ADMIN_ID = process.env.ADMIN_ID;
-
     // Build search filter
     const searchFilter = query
       ? { title: { $regex: query, $options: "i" } }
@@ -36,8 +32,8 @@ export const getRecipes = async (req, res) => {
     const recipes = await Recipe.find({
       ...searchFilter,
       $or: [
-        { user: req.user._id },
-        { user: ADMIN_ID }
+        { isSystem: true },
+        { isPublic: true }
       ]
     });
     res.status(200).json(recipes);
@@ -47,7 +43,7 @@ export const getRecipes = async (req, res) => {
 };
 export const getMyRecipes = async (req, res) => {
   try {
-    const recipes = await Recipe.find({ author: req.userId });
+    const recipes = await Recipe.find({ user: req.user._id });
     res.status(200).json(recipes);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching your recipes' });
@@ -70,12 +66,12 @@ export const getRecipesByIngredients = async (req, res) => {
   try {
     // list of selected ingredient IDs
     const { ingredientIds } = req.body;
-    const ADMIN_ID = process.env.ADMIN_ID;
     console.log("Ingredient IDs received:", ingredientIds);
     const recipes = await Recipe.find({
       $or: [
-        { user: req.user._id },
-        { user: ADMIN_ID }
+        { isSystem: true },
+        { isPublic: true },
+        { user: req.user._id }
       ]
     }).populate("ingredients");
     const results = recipes.map((recipe) => {
@@ -108,32 +104,41 @@ export const getRecipesByIngredients = async (req, res) => {
 
 export const createRecipe = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "Falta la imagen" });
+    let imageUrl = null;
 
-    // PASO 1: Subida manual a Cloudinary usando el archivo ya guardado en local
-    console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      upload_preset: 'meal_plans_app'
-    });
-    console.log("✅ Subida exitosa:", result.secure_url);
+    // PASO 1: Subida manual a Cloudinary si hay archivo
+    if (req.file) {
+      console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        upload_preset: 'meal_plans_app',
+        folder: 'recipes'
+      });
+      console.log("✅ Subida exitosa:", result.secure_url);
+      imageUrl = result.secure_url;
 
-    // PASO 2: Preparar datos para MongoDB con la URL de Cloudinary
+      // Borrar archivo local
+      fs.unlinkSync(req.file.path);
+      console.log("🗑️ Archivo local eliminado");
+    }
+
+    // PASO 2: Preparar datos para MongoDB
     const recipeData = {
       ...req.body,
       ingredients: JSON.parse(req.body.ingredients),
       steps: JSON.parse(req.body.steps),
-      image: result.secure_url, // URL de la nube
+      tags: req.body.tags ? JSON.parse(req.body.tags) : [],
       user: req.user._id,
-      createdBy: req.user._id
+      isPublic: req.body.isPublic === 'true' || req.body.isPublic === true
     };
 
-    // PASO 3: Guardar en DB y borrar archivo local
+    if (imageUrl) {
+      recipeData.image = imageUrl;
+    }
+
+    // PASO 3: Guardar en DB
     const recipe = new Recipe(recipeData);
     await recipe.save();
     console.log("✅ Receta guardada en DB");
-
-    fs.unlinkSync(req.file.path); // Borra el archivo de /uploads
-    console.log("🗑️ Archivo local eliminado");
 
     res.status(201).json(recipe);
   } catch (error) {
@@ -153,16 +158,17 @@ export const createRecipe = async (req, res) => {
 
 export const updateRecipe = async (req, res) => {
   const { id } = req.params;
-  const { title, description, ingredients, steps, time, category, difficulty, image } = req.body;
+  const { title, description, ingredients, steps, time, category, difficulty, image, tags } = req.body;
 
   try {
-    let updateData = {
+    const updateData = {
       title,
       description,
       time,
       category,
       difficulty,
-      image
+      image,
+      isPublic: req.body.isPublic === 'true' || req.body.isPublic === true
     };
 
     if (ingredients) {
@@ -171,16 +177,38 @@ export const updateRecipe = async (req, res) => {
     if (steps) {
       updateData.steps = typeof steps === 'string' ? JSON.parse(steps) : steps;
     }
+    if (tags) {
+      updateData.tags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+    }
 
+    // Handle Image Upload if new file is provided
     if (req.file) {
-      updateData.image = req.file.path;
+      console.log("🚀 Iniciando subida de actualización a Cloudinary:", req.file.path);
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          upload_preset: 'meal_plans_app'
+        });
+        console.log("✅ Subida exitosa (update):", result.secure_url);
+        updateData.image = result.secure_url;
+
+        // Delete local file
+        fs.unlinkSync(req.file.path);
+        console.log("🗑️ Archivo local eliminado (update)");
+      } catch (uploadError) {
+        console.error("❌ Error subiendo a Cloudinary:", uploadError);
+        // Clean up local file even explicitly if it failed
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        return res.status(500).json({ message: "Error uploading image" });
+      }
     }
 
     // Remove undefined keys
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     const recipe = await Recipe.findOneAndUpdate(
-      { _id: id }, // Removed author check for now to avoid issues if field is missing, strictly speaking should check ownership
+      { _id: id, user: req.user._id }, // Ensure ownership
       updateData,
       { new: true }
     );
@@ -190,6 +218,10 @@ export const updateRecipe = async (req, res) => {
     res.status(200).json(recipe);
   } catch (error) {
     console.error(error);
+    // Clean up local file if global error occurred and file exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(400).json({ message: 'Error updating recipe' });
   }
 };
@@ -197,7 +229,7 @@ export const updateRecipe = async (req, res) => {
 export const deleteRecipe = async (req, res) => {
   const { id } = req.params;
   try {
-    const recipe = await Recipe.findOneAndDelete({ _id: id, author: req.userId });
+    const recipe = await Recipe.findOneAndDelete({ _id: id, user: req.user._id });
     if (!recipe) {
       return res.status(404).json({ message: 'Recipe not found or unauthorized' });
     }
@@ -207,8 +239,8 @@ export const deleteRecipe = async (req, res) => {
   }
 };
 export const filterRecipes = async (req, res) => {
-  const user = await User.findById(req.userId);
-  const userIngredients = user.ingredients;
+  // Use req.user set by middleware
+  const userIngredients = req.user.ingredients;
   try {
     const recipes = await Recipe.find();
     const filtered = recipes.filter(recipe =>
@@ -225,8 +257,8 @@ export const filterRecipes = async (req, res) => {
 
 export const getFavorites = async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    const favorites = user.favorites;
+    // req.user is loaded by middleware
+    const favorites = req.user.favorites;
     const recipes = await Recipe.find({ _id: { $in: favorites } });
     res.status(200).json(recipes);
   } catch (error) {
@@ -237,22 +269,31 @@ export const getFavorites = async (req, res) => {
 export const toggleFavorite = async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await User.findById(req.userId);
+    const user = req.user;
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Check if recipe exists
     const recipe = await Recipe.findById(id);
     if (!recipe) {
       return res.status(404).json({ message: 'Recipe not found' });
     }
+
     if (user.favorites.includes(id)) {
       user.favorites.pull(id);
     } else {
       user.favorites.push(id);
     }
     await user.save();
-    res.status(200).json({ message: 'Favorite toggled successfully' });
+
+    // Return the new status to the client
+    res.status(200).json({
+      message: 'Favorite toggled successfully',
+      isFavorite: user.favorites.includes(id)
+    });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error toggling favorite' });
   }
 };

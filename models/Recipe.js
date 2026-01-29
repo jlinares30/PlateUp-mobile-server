@@ -1,4 +1,3 @@
-import { time } from 'drizzle-orm/mysql-core';
 import { Schema, model } from 'mongoose';
 
 const recipeSchema = new Schema({
@@ -7,7 +6,8 @@ const recipeSchema = new Schema({
   description: String,
   category: { type: String, required: true },
   difficulty: String,
-
+  isPublic: { type: Boolean, default: false },
+  isSystem: { type: Boolean, default: false },
   ingredients: [
     {
       ingredient: { type: Schema.Types.ObjectId, ref: 'Ingredient' },
@@ -18,8 +18,7 @@ const recipeSchema = new Schema({
   steps: [String],
   time: { type: String, required: true },
   image: { type: String },
-
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User' }
+  tags: [String],
 });
 
 export default model('Recipe', recipeSchema);
