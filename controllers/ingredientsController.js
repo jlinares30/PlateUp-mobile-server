@@ -44,6 +44,7 @@ export const getIngredientById = async (req, res) => {
 export const createIngredient = async (req, res) => {
     try {
         let imageUrl = null;
+        let imagePublicId = null;
         if (req.file) {
             console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
@@ -57,6 +58,7 @@ export const createIngredient = async (req, res) => {
             });
             console.log("✅ Subida exitosa:", result.secure_url);
             imageUrl = result.secure_url;
+            imagePublicId = result.public_id;
             fs.unlinkSync(req.file.path);
         }
 
@@ -67,6 +69,7 @@ export const createIngredient = async (req, res) => {
 
         if (imageUrl) {
             ingredientData.image = imageUrl;
+            ingredientData.imagePublicId = imagePublicId;
         }
 
         // Parse complex fields if they are strings (from FormData)
@@ -117,9 +120,23 @@ export const updateIngredient = async (req, res) => {
         if (req.file) {
             console.log("🚀 Iniciando subida a Cloudinary (update):", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
-                upload_preset: 'meal_plans_app'
+                upload_preset: 'meal_plans_app',
+                folder: 'ingredients',
+                transformation: [
+                    { width: 800, height: 800, crop: "limit" },
+                    { quality: 35 },
+                    { fetch_format: "auto" }
+                ]
             });
             updateData.image = result.secure_url;
+            updateData.imagePublicId = result.public_id;
+
+            // Delete old image
+            const oldIngredient = await Ingredient.findById(id);
+            if (oldIngredient && oldIngredient.imagePublicId) {
+                cloudinary.uploader.destroy(oldIngredient.imagePublicId);
+            }
+
             fs.unlinkSync(req.file.path);
         }
 
@@ -170,6 +187,11 @@ export const deleteIngredient = async (req, res) => {
         if (!deletedIngredient) {
             return res.status(404).json({ message: 'Ingredient not found' });
         }
+
+        if (deletedIngredient.imagePublicId) {
+            cloudinary.uploader.destroy(deletedIngredient.imagePublicId);
+        }
+
         res.status(200).json({ message: 'Ingredient deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting ingredient' });

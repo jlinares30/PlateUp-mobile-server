@@ -105,6 +105,7 @@ export const getRecipesByIngredients = async (req, res) => {
 export const createRecipe = async (req, res) => {
   try {
     let imageUrl = null;
+    let imagePublicId = null;
 
     // PASO 1: Subida manual a Cloudinary si hay archivo
     if (req.file) {
@@ -120,6 +121,7 @@ export const createRecipe = async (req, res) => {
       });
       console.log("✅ Subida exitosa:", result.secure_url);
       imageUrl = result.secure_url;
+      imagePublicId = result.public_id;
 
       // Borrar archivo local
       fs.unlinkSync(req.file.path);
@@ -138,6 +140,7 @@ export const createRecipe = async (req, res) => {
 
     if (imageUrl) {
       recipeData.image = imageUrl;
+      recipeData.imagePublicId = imagePublicId;
     }
 
     // PASO 3: Guardar en DB
@@ -238,6 +241,11 @@ export const deleteRecipe = async (req, res) => {
     if (!recipe) {
       return res.status(404).json({ message: 'Recipe not found or unauthorized' });
     }
+
+    if (recipe.imagePublicId) {
+      cloudinary.uploader.destroy(recipe.imagePublicId);
+    }
+
     res.status(200).json({ message: 'Recipe deleted successfully' });
   } catch (error) {
     res.status(400).json({ message: 'Error deleting recipe' });

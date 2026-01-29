@@ -18,6 +18,7 @@ const recipeSchema = new Schema({
   steps: [String],
   time: { type: String, required: true },
   image: { type: String },
+  imagePublicId: { type: String },
   tags: [String],
 });
 

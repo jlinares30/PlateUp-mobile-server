@@ -104,6 +104,7 @@ export const createMealPlan = async (req, res) => {
     console.log("POST /meal-plans Request - Body:", JSON.stringify(req.body, null, 2));
 
     let imagePath = null;
+    let imagePublicId = null;
     if (req.file) {
       console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
       try {
@@ -117,6 +118,7 @@ export const createMealPlan = async (req, res) => {
           ]
         });
         imagePath = result.secure_url;
+        imagePublicId = result.public_id;
         console.log("✅ Subida exitosa:", imagePath);
 
         fs.unlinkSync(req.file.path); // Borra el archivo de /uploads
@@ -134,6 +136,7 @@ export const createMealPlan = async (req, res) => {
       title,
       description,
       image: imagePath,
+      imagePublicId,
       days
     });
 
@@ -217,10 +220,23 @@ export const updateMealPlan = async (req, res) => {
       console.log("🚀 Iniciando subida a Cloudinary (Update):", req.file.path);
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
-          upload_preset: 'meal_plans_app'
+          upload_preset: 'meal_plans_app',
+          folder: 'mealplans',
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: 35 },
+            { fetch_format: "auto" }
+          ]
         });
         updateData.image = result.secure_url;
+        updateData.imagePublicId = result.public_id;
         console.log("✅ Subida exitosa:", updateData.image);
+
+        // Delete old image
+        const oldPlan = await MealPlan.findById(id);
+        if (oldPlan && oldPlan.imagePublicId) {
+          cloudinary.uploader.destroy(oldPlan.imagePublicId);
+        }
 
         fs.unlinkSync(req.file.path);
         console.log("🗑️ Archivo local eliminado");
@@ -260,6 +276,11 @@ export const deleteMealPlan = async (req, res) => {
     if (!mealPlan) {
       return res.status(404).json({ message: 'Meal plan not found' });
     }
+
+    if (mealPlan.imagePublicId) {
+      cloudinary.uploader.destroy(mealPlan.imagePublicId);
+    }
+
     res.status(200).json({ message: 'Meal plan deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting meal plan', error });

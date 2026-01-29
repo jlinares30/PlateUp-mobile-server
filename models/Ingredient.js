@@ -5,6 +5,7 @@ const ingredientSchema = new Schema({
   category: String,
   unit: String,
   image: String,
+  imagePublicId: String,
   calories: Number,
   macros: {
     protein: Number,

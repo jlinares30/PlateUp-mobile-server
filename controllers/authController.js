@@ -75,7 +75,14 @@ export async function updateProfile(req, res) {
           { fetch_format: "auto" }
         ]
       });
+
+      // Delete old image if exists
+      if (user.imagePublicId) {
+        cloudinary.uploader.destroy(user.imagePublicId);
+      }
+
       user.image = result.secure_url;
+      user.imagePublicId = result.public_id;
       // Borrar archivo local
       fs.unlinkSync(req.file.path);
     }
