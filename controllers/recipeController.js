@@ -1,6 +1,7 @@
 import fs from 'fs';
 import cloudinary from '../config/cloudinary.js';
 import Recipe from '../models/Recipe.js';
+import logger from '../config/logger.js';
 
 export async function getFilteredRecipes(req, res) {
   // Use req.user set by middleware
@@ -66,7 +67,6 @@ export const getRecipesByIngredients = async (req, res) => {
   try {
     // list of selected ingredient IDs
     const { ingredientIds } = req.body;
-    console.log("Ingredient IDs received:", ingredientIds);
     const recipes = await Recipe.find({
       $or: [
         { isSystem: true },
@@ -97,7 +97,7 @@ export const getRecipesByIngredients = async (req, res) => {
 
     res.json(results);
   } catch (error) {
-    console.error("Error fetching recipes:", error);
+    logger.error("Error fetching recipes:", error);
     res.status(500).json({ message: "Error fetching recipes" });
   }
 };
@@ -109,7 +109,7 @@ export const createRecipe = async (req, res) => {
 
     // PASO 1: Subida manual a Cloudinary si hay archivo
     if (req.file) {
-      console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+      logger.info("🚀 Iniciando subida a Cloudinary:", req.file.path);
       const result = await cloudinary.uploader.upload(req.file.path, {
         upload_preset: 'meal_plans_app',
         folder: 'recipes',
@@ -119,13 +119,13 @@ export const createRecipe = async (req, res) => {
           { fetch_format: "auto" }
         ]
       });
-      console.log("✅ Subida exitosa:", result.secure_url);
+      logger.info("✅ Subida exitosa:", result.secure_url);
       imageUrl = result.secure_url;
       imagePublicId = result.public_id;
 
       // Borrar archivo local
       fs.unlinkSync(req.file.path);
-      console.log("🗑️ Archivo local eliminado");
+      logger.info("🗑️ Archivo local eliminado");
     }
 
     // PASO 2: Preparar datos para MongoDB
@@ -146,18 +146,18 @@ export const createRecipe = async (req, res) => {
     // PASO 3: Guardar en DB
     const recipe = new Recipe(recipeData);
     await recipe.save();
-    console.log("✅ Receta guardada en DB");
+    logger.info("✅ Receta guardada en DB");
 
     res.status(201).json(recipe);
   } catch (error) {
-    console.error("❌ Error en el proceso:", error);
+    logger.error("❌ Error en el proceso:", error);
     // Intentar borrar archivo local si hubo error y el archivo existe
     if (req.file && fs.existsSync(req.file.path)) {
       try {
         fs.unlinkSync(req.file.path);
-        console.log("🗑️ Archivo local eliminado tras error");
+        logger.info("🗑️ Archivo local eliminado tras error");
       } catch (unlinkError) {
-        console.error("Error eliminando archivo local:", unlinkError);
+        logger.error("Error eliminando archivo local:", unlinkError);
       }
     }
     res.status(500).json({ message: "Error al procesar imagen o receta", error: error.message });
@@ -191,19 +191,19 @@ export const updateRecipe = async (req, res) => {
 
     // Handle Image Upload if new file is provided
     if (req.file) {
-      console.log("🚀 Iniciando subida de actualización a Cloudinary:", req.file.path);
+      logger.info("🚀 Iniciando subida de actualización a Cloudinary:", req.file.path);
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           upload_preset: 'meal_plans_app'
         });
-        console.log("✅ Subida exitosa (update):", result.secure_url);
+        logger.info("✅ Subida exitosa (update):", result.secure_url);
         updateData.image = result.secure_url;
 
         // Delete local file
         fs.unlinkSync(req.file.path);
-        console.log("🗑️ Archivo local eliminado (update)");
+        logger.info("🗑️ Archivo local eliminado (update)");
       } catch (uploadError) {
-        console.error("❌ Error subiendo a Cloudinary:", uploadError);
+        logger.error("❌ Error subiendo a Cloudinary:", uploadError);
         // Clean up local file even explicitly if it failed
         if (fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
@@ -225,7 +225,7 @@ export const updateRecipe = async (req, res) => {
     }
     res.status(200).json(recipe);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     // Clean up local file if global error occurred and file exists
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
@@ -306,7 +306,7 @@ export const toggleFavorite = async (req, res) => {
       isFavorite: user.favorites.includes(id)
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Error toggling favorite' });
   }
 };

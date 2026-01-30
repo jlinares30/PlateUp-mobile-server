@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { cloneMealPlan, createMealPlan, deleteMealPlan, getMealPlanById, getMealPlans, getMyMealPlans, updateMealPlan } from '../controllers/mealPlanController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
+import logger from '../config/logger.js';
 const router = Router();
 
 router.get('/', authMiddleware, getMealPlans);
@@ -11,21 +12,14 @@ router.get('/:id', authMiddleware, getMealPlanById); // :id must be after static
 router.post(
     '/',
     authMiddleware,
-    (req, res, next) => {
-        console.log('🎯 [MealPlan] Antes de Multer');
-        next();
-    },
     upload.single('image'),
     (req, res, next) => {
-        console.log('=== [MealPlan] CHECKPOINT DESPUÉS DE MULTER ===');
-        console.log('Headers:', req.headers);
-        console.log('req.file:', req.file);
-        // Evitar loguear todo el body si es muy grande, pero útil para debug
-        console.log('req.body:', JSON.stringify(req.body, null, 2));
-        console.log('==============================================');
+        logger.info('Headers:', req.headers);
+        logger.info('req.file:', req.file);
+        logger.info('req.body:', JSON.stringify(req.body, null, 2));
 
         if (!req.file && req.headers['content-type']?.includes('multipart/form-data')) {
-            console.error('❌ Multer procesó multipart pero no generó req.file');
+            logger.error('❌ Multer procesó multipart pero no generó req.file');
         }
         next();
     },

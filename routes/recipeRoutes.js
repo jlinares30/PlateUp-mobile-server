@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createRecipe, deleteRecipe, getFavorites, getMyRecipes, getRecipeById, getRecipes, getRecipesByIngredients, toggleFavorite, updateRecipe } from '../controllers/recipeController.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import upload from '../middlewares/upload.js';
+import logger from '../config/logger.js';
 const router = Router();
 
 router.get('/', authMiddleware, getRecipes);
@@ -10,21 +11,14 @@ router.get('/:id', authMiddleware, getRecipeById);
 router.post(
     '/',
     authMiddleware,
-    (req, res, next) => {
-        console.log('🎯 Antes de Multer');
-        next();
-    },
     upload.single('image'),
     (req, res, next) => {
-        console.log('=== CHECKPOINT DESPUÉS DE MULTER ===');
-        console.log('Headers:', req.headers);
-        console.log('req.file:', req.file);
-        console.log('req.body:', req.body);
-        console.log('===================================');
+        logger.info('Headers:', req.headers);
+        logger.info('req.file:', req.file);
+        logger.info('req.body:', req.body);
 
-        // Si no hay req.file, es porque Cloudinary falló
         if (!req.file && req.headers['content-type']?.includes('multipart/form-data')) {
-            console.error('❌ Multer procesó multipart pero no generó req.file');
+            logger.error('❌ Multer procesó multipart pero no generó req.file');
         }
 
         next();

@@ -11,6 +11,7 @@ import pantryRoutes from './routes/pantryRoutes.js';
 import recipesRoutes from './routes/recipeRoutes.js';
 import shoppingListRoutes from './routes/shoppingListRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
+import logger from './config/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,7 +30,7 @@ app.use(cors({
 
 // Logger
 app.use((req, res, next) => {
-  console.log('📦 Content-Type:', req.headers['content-type']);
+  logger.info('📦 Content-Type:', req.headers['content-type']);
   next();
 });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -42,15 +43,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/ingredients", ingredientsRoutes);
-app.use("/api/recipes",
-  (req, res, next) => {
-    console.log('📦 Middleware DEBUG:');
-    console.log('Headers:', req.headers);
-    console.log('Method:', req.method);
-    console.log('Content-Type:', req.get('content-type'));
-    next();
-  },
-  recipesRoutes);
+app.use("/api/recipes", recipesRoutes);
 app.use("/api/meal-plans", mealPlanRoutes);
 app.use("/api/pantry", pantryRoutes);
 app.use("/api/shopping-list", shoppingListRoutes);
@@ -68,14 +61,14 @@ async function start() {
       dbName: "miapp",
     });
 
-    console.log("✅ Conectado a MongoDB");
+    logger.info("✅ Conectado a MongoDB");
 
     app.listen(ENV.PORT, "0.0.0.0", () => {
-      console.log(`🚀 Servidor corriendo en http://0.0.0.0:${ENV.PORT}`);
+      logger.info(`🚀 Servidor corriendo en http://0.0.0.0:${ENV.PORT}`);
     });
 
   } catch (err) {
-    console.error("❌ Error conectando a MongoDB:", err.message);
+    logger.error("❌ Error conectando a MongoDB:", err.message);
     process.exit(1);
   }
 }

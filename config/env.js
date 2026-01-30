@@ -1,12 +1,4 @@
-import express from 'express';
 process.loadEnvFile();
-
-// const app = express();
-
-// app.listen(process.env.PORT, () => {
-// console.log(`Server is running on port ${process.env.PORT}`);
-// });
-
 
 export const ENV = {
   PORT: process.env.PORT || 5001,

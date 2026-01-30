@@ -3,6 +3,7 @@ import { hash as _hash, compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import cloudinary from '../config/cloudinary.js';
 import fs from 'fs';
+import logger from '../config/logger.js';
 
 export async function register(req, res) {
   const { name, email, password } = req.body;
@@ -28,7 +29,7 @@ export async function login(req, res) {
   if (!user || !(await compare(password, user.password))) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-  console.log("JWT_SECRET:", process.env.JWT_SECRET);
+  logger.info("JWT_SECRET logic execution");
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
   res.json({
@@ -100,12 +101,11 @@ export async function updateProfile(req, res) {
     });
 
   } catch (error) {
-    // Limpiar archivo si hubo error
     if (req.file && fs.existsSync(req.file.path)) {
       try {
         fs.unlinkSync(req.file.path);
       } catch (unlinkError) {
-        console.error("Error deleting local file:", unlinkError);
+        logger.error("Error deleting local file:", unlinkError);
       }
     }
     res.status(500).json({ message: 'Error updating profile', error: error.message });

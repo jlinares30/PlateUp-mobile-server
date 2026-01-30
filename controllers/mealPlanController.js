@@ -1,6 +1,7 @@
 import fs from 'fs';
 import cloudinary from '../config/cloudinary.js';
 import MealPlan from "../models/MealPlan.js";
+import logger from '../config/logger.js';
 
 // Helper to format plan (map user to owner)
 const formatPlan = (plan) => {
@@ -40,14 +41,12 @@ export const getMealPlans = async (req, res) => {
 
 export const getMyMealPlans = async (req, res) => {
   try {
-    console.log("GET /meal-plans/my Request - User:", req.user?._id);
     const mealPlans = await MealPlan.find({ user: req.user._id })
       .populate('days.meals.recipe', 'title')
       .populate('user', 'name email _id')
       .sort({ createdAt: -1 });
 
     const formatted = mealPlans.map(formatPlan);
-    console.log(`GET /meal-plans/my Response - Found ${formatted.length} plans`);
     res.status(200).json({ data: formatted });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching my meal plans', error });
@@ -57,7 +56,6 @@ export const getMyMealPlans = async (req, res) => {
 export const getMealPlanById = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("GET /meal-plans/:id Request - ID:", id, "User:", req.user?._id);
     if (!req.user?._id) {
       return res.status(401).json({ message: "No autorizado" });
     }
@@ -76,7 +74,6 @@ export const getMealPlanById = async (req, res) => {
       return res.status(404).json({ message: "Meal plan not found" });
     }
     const response = formatPlan(mealPlan);
-    console.log("GET /meal-plans/:id Response - Data:", JSON.stringify(response, null, 2));
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching meal plan:", error);
@@ -101,12 +98,11 @@ export const createMealPlan = async (req, res) => {
     if (req.body.isPublic === 'false') req.body.isPublic = false;
 
     const { title, description, days } = req.body;
-    console.log("POST /meal-plans Request - Body:", JSON.stringify(req.body, null, 2));
 
     let imagePath = null;
     let imagePublicId = null;
     if (req.file) {
-      console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+      logger.info("🚀 Iniciando subida a Cloudinary:", req.file.path);
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           upload_preset: 'meal_plans_app',
@@ -119,12 +115,12 @@ export const createMealPlan = async (req, res) => {
         });
         imagePath = result.secure_url;
         imagePublicId = result.public_id;
-        console.log("✅ Subida exitosa:", imagePath);
+        logger.info("✅ Subida exitosa:", imagePath);
 
         fs.unlinkSync(req.file.path); // Borra el archivo de /uploads
-        console.log("🗑️ Archivo local eliminado");
+        logger.info("🗑️ Archivo local eliminado");
       } catch (uploadError) {
-        console.error("❌ Error subiendo a Cloudinary:", uploadError);
+        logger.error("❌ Error subiendo a Cloudinary:", uploadError);
         // Si falla, intentamos borrar el local por si acaso
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         return res.status(500).json({ message: "Error al subir imagen", error: uploadError.message });
@@ -146,10 +142,9 @@ export const createMealPlan = async (req, res) => {
     await savedPlan.populate('user', 'name email _id');
 
     const response = formatPlan(savedPlan);
-    console.log("POST /meal-plans Response - Created ID:", savedPlan._id);
     res.status(201).json(response);
   } catch (error) {
-    console.error("Error creating meal plan:", error);
+    logger.error("Error creating meal plan:", error);
     // Clean up file if it exists and wasn't processed
     if (req.file && fs.existsSync(req.file.path)) {
       try { fs.unlinkSync(req.file.path); } catch (e) { }
@@ -161,7 +156,6 @@ export const createMealPlan = async (req, res) => {
 export const cloneMealPlan = async (req, res) => {
   try {
     const { id } = req.body; // ID of the plan to clone
-    console.log("POST /meal-plans/clone Request - ID to clone:", id, "User:", req.user?._id);
     if (!id) return res.status(400).json({ message: "ID parameter required" });
 
     const originalPlan = await MealPlan.findById(id);
@@ -186,10 +180,9 @@ export const cloneMealPlan = async (req, res) => {
       .populate('days.meals.recipe', 'title');
 
     const response = formatPlan(finalPlan);
-    console.log("POST /meal-plans/clone Response - New Plan ID:", finalPlan._id, "Owner:", response.owner);
     res.status(201).json({ data: response });
   } catch (error) {
-    console.error("Clone error:", error);
+    logger.error("Clone error:", error);
     res.status(500).json({ message: "Error cloning meal plan", error: error.message });
   }
 };
@@ -212,12 +205,11 @@ export const updateMealPlan = async (req, res) => {
     if (req.body.isPublic === 'false') req.body.isPublic = false;
 
     const { title, description, isActive, days } = req.body;
-    console.log("PUT /meal-plans/:id Request - ID:", id, "Body:", JSON.stringify(req.body, null, 2));
 
     const updateData = { title, description, isActive, days };
 
     if (req.file) {
-      console.log("🚀 Iniciando subida a Cloudinary (Update):", req.file.path);
+      logger.info("🚀 Iniciando subida a Cloudinary (Update):", req.file.path);
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           upload_preset: 'meal_plans_app',
@@ -230,7 +222,7 @@ export const updateMealPlan = async (req, res) => {
         });
         updateData.image = result.secure_url;
         updateData.imagePublicId = result.public_id;
-        console.log("✅ Subida exitosa:", updateData.image);
+        logger.info("✅ Subida exitosa:", updateData.image);
 
         // Delete old image
         const oldPlan = await MealPlan.findById(id);
@@ -239,9 +231,9 @@ export const updateMealPlan = async (req, res) => {
         }
 
         fs.unlinkSync(req.file.path);
-        console.log("🗑️ Archivo local eliminado");
+        logger.info("🗑️ Archivo local eliminado");
       } catch (uploadError) {
-        console.error("❌ Error subiendo a Cloudinary:", uploadError);
+        logger.error("❌ Error subiendo a Cloudinary:", uploadError);
         if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
         return res.status(500).json({ message: "Error al subir imagen", error: uploadError.message });
       }
@@ -255,13 +247,11 @@ export const updateMealPlan = async (req, res) => {
       .populate('days.meals.recipe', 'title');
 
     if (!mealPlan) {
-      // If we uploaded an image but the plan wasn't found, we technically wasted an upload, 
-      // but strictly speaking we don't need to delete it from Cloudinary here unless we want to be very strict.
       return res.status(404).json({ message: 'Meal plan not found' });
     }
     res.status(200).json(formatPlan(mealPlan));
   } catch (error) {
-    console.error("Error updating meal plan:", error);
+    logger.error("Error updating meal plan:", error);
     if (req.file && fs.existsSync(req.file.path)) {
       try { fs.unlinkSync(req.file.path); } catch (e) { }
     }

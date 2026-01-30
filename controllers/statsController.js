@@ -1,6 +1,7 @@
 import MealPlan from '../models/MealPlan.js';
 import Recipe from '../models/Recipe.js';
 import User from '../models/User.js';
+import logger from '../config/logger.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
@@ -25,7 +26,7 @@ export const getDashboardStats = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error fetching stats:", error);
+        logger.error("Error fetching stats:", error);
         res.status(500).json({ success: false, message: "Error loading stats" });
     }
 };

@@ -25,6 +25,8 @@
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.1",
     "multer": "^2.0.2",
-    "multer-storage-cloudinary": "^2.2.1"
+    "multer-storage-cloudinary": "^2.2.1",
+    "pino": "^10.3.0",
+    "pino-pretty": "^13.1.3"
   }
 }

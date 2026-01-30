@@ -1,6 +1,7 @@
 import Ingredient from '../models/Ingredient.js'
 import cloudinary from '../config/cloudinary.js';
 import fs from 'fs';
+import logger from '../config/logger.js';
 
 export const getAllIngredients = async (req, res) => {
     try {
@@ -46,7 +47,7 @@ export const createIngredient = async (req, res) => {
         let imageUrl = null;
         let imagePublicId = null;
         if (req.file) {
-            console.log("🚀 Iniciando subida a Cloudinary:", req.file.path);
+            logger.info("🚀 Iniciando subida a Cloudinary:", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
                 upload_preset: 'meal_plans_app',
                 folder: 'ingredients',
@@ -56,7 +57,7 @@ export const createIngredient = async (req, res) => {
                     { fetch_format: "auto" }
                 ]
             });
-            console.log("✅ Subida exitosa:", result.secure_url);
+            logger.info("✅ Subida exitosa:", result.secure_url);
             imageUrl = result.secure_url;
             imagePublicId = result.public_id;
             fs.unlinkSync(req.file.path);
@@ -77,7 +78,7 @@ export const createIngredient = async (req, res) => {
             try {
                 ingredientData.macros = JSON.parse(ingredientData.macros);
             } catch (e) {
-                console.error("Error parsing macros:", e);
+                logger.error("Error parsing macros:", e);
             }
         }
 
@@ -85,7 +86,7 @@ export const createIngredient = async (req, res) => {
             try {
                 ingredientData.tags = JSON.parse(ingredientData.tags);
             } catch (e) {
-                console.error("Error parsing tags:", e);
+                logger.error("Error parsing tags:", e);
             }
         }
 
@@ -103,7 +104,7 @@ export const createIngredient = async (req, res) => {
         res.status(201).json(savedIngredient);
     }
     catch (error) {
-        console.error("Error creating ingredient:", error);
+        logger.error("Error creating ingredient:", error);
         // Clean up file if error
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
@@ -118,7 +119,7 @@ export const updateIngredient = async (req, res) => {
         const updateData = { ...req.body };
 
         if (req.file) {
-            console.log("🚀 Iniciando subida a Cloudinary (update):", req.file.path);
+            logger.info("🚀 Iniciando subida a Cloudinary (update):", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
                 upload_preset: 'meal_plans_app',
                 folder: 'ingredients',
@@ -172,7 +173,7 @@ export const updateIngredient = async (req, res) => {
 
         res.status(200).json(updatedIngredient);
     } catch (error) {
-        console.error("Error updating ingredient:", error);
+        logger.error("Error updating ingredient:", error);
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
