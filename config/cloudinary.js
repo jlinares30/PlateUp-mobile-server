@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-process.loadEnvFile();
+
 import logger from './logger.js';
 
 cloudinary.config({
