@@ -1,4 +1,4 @@
-# 📱 Mobile App Prototype Backend
+# 📱 PlateUp! Mobile App Backend
 
 > A robust RESTful API designed to power a modern Recipe & Meal Planning mobile application.
 
@@ -29,8 +29,9 @@ This project leverages a modern JavaScript stack:
 - **Framework**: [Express.js](https://expressjs.com/) (v5)
 - **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
 - **Authentication**: `jsonwebtoken` & `bcrypt`
-- **Environment**: `dotenv` for configuration
 - **Middleware**: `cors` for cross-origin resource sharing
+- **Logging**: [Pino](https://getpino.io/) for high-performance logging
+- **Storage**: [Cloudinary](https://cloudinary.com/) for cloud image management
 
 ---
 
@@ -61,9 +62,12 @@ Ensure you have the following installed:
 3.  **Configure Environment**
     Create a `.env` file in the root directory based on your configuration needs.
     ```env
-    PORT=3000
-    DATABASE_URL=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
-    JWT_SECRET=your_super_secret_key
+    PORT=5001
+    DATABASE_URL=mongodb+srv://<user>:<password>@cluster.mongodb.net/miapp?retryWrites=true&w=majority
+    JWT_SECRET=secret_key
+    CLOUDINARY_CLOUD_NAME=your_cloud_name
+    CLOUDINARY_API_KEY=your_api_key
+    CLOUDINARY_API_SECRET=your_api_secret
     ```
 
 ### ▶️ Running the Server
@@ -83,22 +87,51 @@ Server will start at: `http://localhost:3000` (or your defined PORT).
 
 ## 📡 API Endpoints
 
-### Auth
+### 🔐 Auth
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Authenticate user
+- `PUT /api/auth/profile` - Update user profile (supports image upload)
 
-### Ingredients
+### 🥑 Ingredients
 - `GET /api/ingredients` - List all ingredients
-- `POST /api/ingredients` - Add new ingredient
+- `GET /api/ingredients/:id` - Get ingredient details
+- `POST /api/ingredients` - Add new ingredient (supports image upload)
 
-### Recipes
-- `GET /api/recipes` - Get all recipes
-- `POST /api/recipes` - Create a recipe
+### 🥗 Recipes
+- `GET /api/recipes` - Get all recipes (public & system)
+- `GET /api/recipes/my` - Get logged-in user's recipes
+- `GET /api/recipes/favorites/all` - Get user's favorite recipes
 - `GET /api/recipes/:id` - Get recipe details
+- `POST /api/recipes` - Create a recipe (supports image upload)
+- `PUT /api/recipes/:id` - Update a recipe
+- `DELETE /api/recipes/:id` - Delete a recipe
+- `POST /api/recipes/by-ingredients` - Filter recipes by available ingredients
+- `POST /api/recipes/:id/favorite` - Toggle favorite status
 
-### Meal Plans
-- `GET /api/meal-plans` - Retrieve meal plans
-- `POST /api/meal-plans` - Create a new plan
+### 📅 Meal Plans
+- `GET /api/meal-plans` - Retrieve public/system meal plans
+- `GET /api/meal-plans/my` - Retrieve user's meal plans
+- `GET /api/meal-plans/:id` - Get meal plan details
+- `POST /api/meal-plans` - Create a new plan (supports image upload)
+- `POST /api/meal-plans/clone` - Clone an existing meal plan
+- `PUT /api/meal-plans/:id` - Update a meal plan
+- `DELETE /api/meal-plans/:id` - Delete a meal plan
+
+### 🥫 Pantry
+- `GET /api/pantry` - Get user's pantry items
+- `POST /api/pantry` - Add item to pantry
+- `PUT /api/pantry/:itemId` - Update pantry item (quantity, unit)
+- `DELETE /api/pantry/:itemId` - Remove item from pantry
+
+### 🛒 Shopping List
+- `GET /api/shopping-list` - Get shopping list
+- `POST /api/shopping-list` - Add item to list
+- `PUT /api/shopping-list/:itemId` - Update list item
+- `DELETE /api/shopping-list/clear` - Clear entire list
+- `DELETE /api/shopping-list/:itemId` - Remove item from list
+
+### 📊 Stats
+- `GET /api/stats` - Get user dashboard statistics
 
 ---
 
