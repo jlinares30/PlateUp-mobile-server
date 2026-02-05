@@ -106,7 +106,7 @@ export const createMealPlan = async (req, res) => {
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           upload_preset: 'meal_plans_app',
-          folder: 'mealplans',
+          folder: 'meal-plan-app/mealplans',
           transformation: [
             { width: 800, height: 800, crop: "limit" },
             { quality: 35 },
@@ -213,7 +213,7 @@ export const updateMealPlan = async (req, res) => {
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
           upload_preset: 'meal_plans_app',
-          folder: 'mealplans',
+          folder: 'meal-plan-app/mealplans',
           transformation: [
             { width: 800, height: 800, crop: "limit" },
             { quality: 35 },

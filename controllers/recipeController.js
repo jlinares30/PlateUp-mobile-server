@@ -112,7 +112,7 @@ export const createRecipe = async (req, res) => {
       logger.info("🚀 Iniciando subida a Cloudinary:", req.file.path);
       const result = await cloudinary.uploader.upload(req.file.path, {
         upload_preset: 'meal_plans_app',
-        folder: 'recipes',
+        folder: 'meal-plan-app/recipes',
         transformation: [
           { width: 800, height: 800, crop: "limit" },
           { quality: 35 },
@@ -194,7 +194,13 @@ export const updateRecipe = async (req, res) => {
       logger.info("🚀 Iniciando subida de actualización a Cloudinary:", req.file.path);
       try {
         const result = await cloudinary.uploader.upload(req.file.path, {
-          upload_preset: 'meal_plans_app'
+          upload_preset: 'meal_plans_app',
+          folder: 'meal-plan-app/recipes',
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: 35 },
+            { fetch_format: "auto" }
+          ]
         });
         logger.info("✅ Subida exitosa (update):", result.secure_url);
         updateData.image = result.secure_url;

@@ -50,7 +50,7 @@ export const createIngredient = async (req, res) => {
             logger.info("🚀 Iniciando subida a Cloudinary:", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
                 upload_preset: 'meal_plans_app',
-                folder: 'ingredients',
+                folder: 'meal-plan-app/ingredients',
                 transformation: [
                     { width: 800, height: 800, crop: "limit" },
                     { quality: 35 },
@@ -122,7 +122,7 @@ export const updateIngredient = async (req, res) => {
             logger.info("🚀 Iniciando subida a Cloudinary (update):", req.file.path);
             const result = await cloudinary.uploader.upload(req.file.path, {
                 upload_preset: 'meal_plans_app',
-                folder: 'ingredients',
+                folder: 'meal-plan-app/ingredients',
                 transformation: [
                     { width: 800, height: 800, crop: "limit" },
                     { quality: 35 },

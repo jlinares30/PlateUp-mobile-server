@@ -69,7 +69,7 @@ export async function updateProfile(req, res) {
       // Subida manual a Cloudinary
       const result = await cloudinary.uploader.upload(req.file.path, {
         upload_preset: 'meal_plans_app',
-        folder: 'users',
+        folder: 'meal-plan-app/users',
         transformation: [
           { width: 800, height: 800, crop: "limit" },
           { quality: 35 },
