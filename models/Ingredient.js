@@ -17,6 +17,6 @@ const ingredientSchema = new Schema({
   isPublic: { type: Boolean, default: false },
   isSystem: { type: Boolean, default: false },
   user: { type: Schema.Types.ObjectId, ref: 'User' }
-});
+}, { timestamps: true });
 
 export default model('Ingredient', ingredientSchema);

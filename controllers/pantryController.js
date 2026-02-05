@@ -48,7 +48,7 @@ export const addToPantry = async (req, res) => {
 // Update pantry item
 export const updatePantryItem = async (req, res) => {
     const { itemId } = req.params;
-    const { quantity, unit } = req.body;
+    const { stockLevel, unit } = req.body;
 
     try {
         const user = await User.findById(req.user.id);
@@ -61,8 +61,19 @@ export const updatePantryItem = async (req, res) => {
             return res.status(404).json({ message: 'Item not found in pantry' });
         }
 
-        if (quantity !== undefined) item.quantity = quantity;
+        // Update stockLevel
+        if (stockLevel !== undefined) {
+            // Optional: Validation (Mongoose will also validate this against the enum)
+            const validLevels = ['FULL', 'MEDIUM', 'LOW', 'OUT'];
+            if (validLevels.includes(stockLevel)) {
+                item.stockLevel = stockLevel;
+            }
+        }
+
         if (unit !== undefined) item.unit = unit;
+
+        // If you want to keep quantity logic as a fallback or remove it:
+        // if (quantity !== undefined) item.quantity = quantity;
 
         await user.save();
 

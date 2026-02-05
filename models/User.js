@@ -10,8 +10,13 @@ const userSchema = new Schema({
   pantry: [
     {
       ingredient: { type: Schema.Types.ObjectId, ref: 'Ingredient' },
-      quantity: Number,
-      unit: String
+      // quantity: Number,
+      unit: String,
+      stockLevel: {
+        type: String,
+        enum: ['FULL', 'MEDIUM', 'LOW', 'OUT'],
+        default: 'FULL'
+      }
     }
   ],
 
@@ -24,6 +29,6 @@ const userSchema = new Schema({
     }
   ],
   favorites: [{ type: Schema.Types.ObjectId, ref: 'Recipe' }]
-});
+}, { timestamps: true });
 
 export default model('User', userSchema);

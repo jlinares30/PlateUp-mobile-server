@@ -11,7 +11,8 @@ const recipeSchema = new Schema({
   ingredients: [
     {
       ingredient: { type: Schema.Types.ObjectId, ref: 'Ingredient' },
-      quantity: Number
+      quantity: { type: Number, required: true },
+      unit: { type: String, required: true }
     }
   ],
 
@@ -20,6 +21,6 @@ const recipeSchema = new Schema({
   image: { type: String },
   imagePublicId: { type: String },
   tags: [String],
-});
+}, { timestamps: true });
 
 export default model('Recipe', recipeSchema);
