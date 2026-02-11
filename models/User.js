@@ -25,7 +25,14 @@ const userSchema = new Schema({
       ingredient: { type: Schema.Types.ObjectId, ref: 'Ingredient' },
       quantity: Number,
       unit: String,
-      checked: { type: Boolean, default: false }
+      checked: { type: Boolean, default: false },
+      contributors: [
+        {
+          recipeTitle: String,
+          quantity: Number,
+          unit: String
+        }
+      ]
     }
   ],
   favorites: [{ type: Schema.Types.ObjectId, ref: 'Recipe' }]

@@ -15,24 +15,49 @@ export const getShoppingList = async (req, res) => {
 
 // Add item to shopping list
 export const addToShoppingList = async (req, res) => {
-    const { ingredientId, quantity, unit, checked } = req.body;
+    const { ingredientId, quantity, unit, checked, recipeTitle } = req.body;
     try {
         const user = await User.findById(req.user._id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Check if ingredient already exists in shopping list
+        // Check if ingredient already exists in shopping list WITH SAME UNIT
         const existingItemIndex = user.shoppingList.findIndex(
-            (item) => item.ingredient.toString() === ingredientId
+            (item) => item.ingredient.toString() === ingredientId && item.unit === unit
         );
 
         if (existingItemIndex > -1) {
             // Update quantity if exists
             user.shoppingList[existingItemIndex].quantity += Number(quantity);
+
+            // Add contributor if recipeTitle is provided
+            if (recipeTitle) {
+                user.shoppingList[existingItemIndex].contributors.push({
+                    recipeTitle,
+                    quantity: Number(quantity),
+                    unit
+                });
+            }
         } else {
             // Add new item
-            user.shoppingList.push({ ingredient: ingredientId, quantity, unit, checked: !!checked });
+            const newItem = {
+                ingredient: ingredientId,
+                quantity: Number(quantity),
+                unit,
+                checked: !!checked,
+                contributors: []
+            };
+
+            if (recipeTitle) {
+                newItem.contributors.push({
+                    recipeTitle,
+                    quantity: Number(quantity),
+                    unit
+                });
+            }
+
+            user.shoppingList.push(newItem);
         }
 
         await user.save();
