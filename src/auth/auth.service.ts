@@ -108,4 +108,18 @@ export class AuthService {
       },
     };
   }
+
+  async resetPassword(resetPasswordDto: { email: string; newPassword: string }) {
+    const { email, newPassword } = resetPasswordDto;
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) {
+      throw new NotFoundException('No existe ningún usuario con este correo electrónico');
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return { message: 'Contraseña restablecida exitosamente' };
+  }
 }

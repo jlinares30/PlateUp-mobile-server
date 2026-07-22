@@ -38,3 +38,14 @@ export class UpdateProfileDto {
   @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   password?: string;
 }
+
+export class ResetPasswordDto {
+  @IsEmail({}, { message: 'Formato de email inválido' })
+  @IsNotEmpty({ message: 'El email es requerido' })
+  email: string;
+
+  @IsString()
+  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @IsNotEmpty({ message: 'La nueva contraseña es requerida' })
+  newPassword: string;
+}

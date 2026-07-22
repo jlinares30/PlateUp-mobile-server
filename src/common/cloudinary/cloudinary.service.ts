@@ -19,14 +19,18 @@ export class CloudinaryService {
     file: Express.Multer.File,
     folder: string,
   ): Promise<{ url: string; publicId: string }> {
-    if (!file || !file.path) {
+    if (!file || (!file.path && !file.buffer)) {
       throw new Error('Archivo inválido para subida');
     }
 
     try {
-      this.logger.log(`🚀 Subiendo a Cloudinary (${folder}): ${file.path}`);
+      const source = file.path
+        ? file.path
+        : `data:${file.mimetype || 'image/jpeg'};base64,${file.buffer.toString('base64')}`;
+
+      this.logger.log(`🚀 Subiendo a Cloudinary (${folder}): ${file.originalname || file.path || 'buffer'}`);
       const result: UploadApiResponse = await cloudinary.uploader.upload(
-        file.path,
+        source,
         {
           upload_preset: 'meal_plans_app',
           folder: `meal-plan-app/${folder}`,
@@ -40,8 +44,8 @@ export class CloudinaryService {
 
       this.logger.log(`✅ Subida exitosa: ${result.secure_url}`);
 
-      // Eliminar archivo temporal local
-      if (fs.existsSync(file.path)) {
+      // Eliminar archivo temporal local si proviene de disco
+      if (file.path && fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
 
