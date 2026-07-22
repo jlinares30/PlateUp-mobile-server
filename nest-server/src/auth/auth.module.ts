@@ -8,11 +8,13 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { CloudinaryModule } from '../common/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     PassportModule,
+    CloudinaryModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

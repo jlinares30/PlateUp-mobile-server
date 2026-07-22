@@ -3,11 +3,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Ingredient, IngredientDocument } from './schemas/ingredient.schema';
 import { CreateIngredientDto, UpdateIngredientDto } from './dto/ingredient.dto';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class IngredientsService {
   constructor(
     @InjectModel(Ingredient.name) private ingredientModel: Model<IngredientDocument>,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   async findAll(userId: string, query?: string) {
@@ -35,25 +37,34 @@ export class IngredientsService {
     return ingredient;
   }
 
-  async create(userId: string, createIngredientDto: CreateIngredientDto, imagePath?: string) {
+  async create(userId: string, createIngredientDto: CreateIngredientDto, imageFile?: Express.Multer.File) {
     const ingredientData: Record<string, any> = {
       ...createIngredientDto,
       user: new Types.ObjectId(userId),
     };
 
-    if (imagePath) {
-      ingredientData.image = imagePath;
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'ingredients');
+      ingredientData.image = uploaded.url;
+      ingredientData.imagePublicId = uploaded.publicId;
     }
 
     const created = new this.ingredientModel(ingredientData);
     return created.save();
   }
 
-  async update(id: string, updateIngredientDto: UpdateIngredientDto, imagePath?: string) {
+  async update(id: string, updateIngredientDto: UpdateIngredientDto, imageFile?: Express.Multer.File) {
     const updateData: Record<string, any> = { ...updateIngredientDto };
 
-    if (imagePath) {
-      updateData.image = imagePath;
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'ingredients');
+      updateData.image = uploaded.url;
+      updateData.imagePublicId = uploaded.publicId;
+
+      const oldIngredient = await this.ingredientModel.findById(id).exec();
+      if (oldIngredient && oldIngredient.imagePublicId) {
+        await this.cloudinaryService.deleteImage(oldIngredient.imagePublicId);
+      }
     }
 
     const updated = await this.ingredientModel
@@ -71,6 +82,11 @@ export class IngredientsService {
     if (!deleted) {
       throw new NotFoundException('Ingredient not found');
     }
+
+    if (deleted.imagePublicId) {
+      await this.cloudinaryService.deleteImage(deleted.imagePublicId);
+    }
+
     return { message: 'Ingredient deleted successfully' };
   }
 }

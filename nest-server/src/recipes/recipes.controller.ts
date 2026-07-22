@@ -49,7 +49,7 @@ export class RecipesController {
     @Body() createRecipeDto: CreateRecipeDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.recipesService.create(req.user.id, createRecipeDto, file?.path);
+    return this.recipesService.create(req.user.id, createRecipeDto, file);
   }
 
   @Put(':id')
@@ -60,7 +60,7 @@ export class RecipesController {
     @Body() updateRecipeDto: UpdateRecipeDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.recipesService.update(req.user.id, id, updateRecipeDto, file?.path);
+    return this.recipesService.update(req.user.id, id, updateRecipeDto, file);
   }
 
   @Delete(':id')

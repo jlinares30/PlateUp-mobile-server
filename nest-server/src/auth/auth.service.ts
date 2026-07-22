@@ -5,20 +5,31 @@ import { User, UserDocument } from '../users/schemas/user.schema';
 import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private jwtService: JwtService,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
-  async register(registerDto: RegisterDto, imagePath?: string) {
+  async register(registerDto: RegisterDto, imageFile?: Express.Multer.File) {
     const { name, email, password } = registerDto;
-    
+
     const existingUser = await this.userModel.findOne({ email });
     if (existingUser) {
       throw new BadRequestException('Email already in use');
+    }
+
+    let imageUrl: string | undefined;
+    let imagePublicId: string | undefined;
+
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'users');
+      imageUrl = uploaded.url;
+      imagePublicId = uploaded.publicId;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -26,7 +37,8 @@ export class AuthService {
       name,
       email,
       password: hashedPassword,
-      image: imagePath,
+      image: imageUrl,
+      imagePublicId,
     });
 
     await createdUser.save();
@@ -76,7 +88,12 @@ export class AuthService {
     }
 
     if (imageFile) {
-      user.image = imageFile.path;
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'users');
+      if (user.imagePublicId) {
+        await this.cloudinaryService.deleteImage(user.imagePublicId);
+      }
+      user.image = uploaded.url;
+      user.imagePublicId = uploaded.publicId;
     }
 
     await user.save();

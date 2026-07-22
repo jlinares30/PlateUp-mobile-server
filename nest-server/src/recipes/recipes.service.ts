@@ -1,15 +1,17 @@
-import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Recipe, RecipeDocument } from './schemas/recipe.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { CreateRecipeDto, UpdateRecipeDto } from './dto/recipe.dto';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class RecipesService {
   constructor(
     @InjectModel(Recipe.name) private recipeModel: Model<RecipeDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   async findAll(query?: string) {
@@ -75,25 +77,34 @@ export class RecipesService {
     return results;
   }
 
-  async create(userId: string, createRecipeDto: CreateRecipeDto, imagePath?: string) {
+  async create(userId: string, createRecipeDto: CreateRecipeDto, imageFile?: Express.Multer.File) {
     const recipeData: Record<string, any> = {
       ...createRecipeDto,
       user: new Types.ObjectId(userId),
     };
 
-    if (imagePath) {
-      recipeData.image = imagePath;
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'recipes');
+      recipeData.image = uploaded.url;
+      recipeData.imagePublicId = uploaded.publicId;
     }
 
     const created = new this.recipeModel(recipeData);
     return created.save();
   }
 
-  async update(userId: string, id: string, updateRecipeDto: UpdateRecipeDto, imagePath?: string) {
+  async update(userId: string, id: string, updateRecipeDto: UpdateRecipeDto, imageFile?: Express.Multer.File) {
     const updateData: Record<string, any> = { ...updateRecipeDto };
 
-    if (imagePath) {
-      updateData.image = imagePath;
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'recipes');
+      updateData.image = uploaded.url;
+      updateData.imagePublicId = uploaded.publicId;
+
+      const oldRecipe = await this.recipeModel.findById(id).exec();
+      if (oldRecipe && oldRecipe.imagePublicId) {
+        await this.cloudinaryService.deleteImage(oldRecipe.imagePublicId);
+      }
     }
 
     const updated = await this.recipeModel
@@ -121,6 +132,11 @@ export class RecipesService {
     if (!deleted) {
       throw new NotFoundException('Recipe not found or unauthorized');
     }
+
+    if (deleted.imagePublicId) {
+      await this.cloudinaryService.deleteImage(deleted.imagePublicId);
+    }
+
     return { message: 'Recipe deleted successfully' };
   }
 

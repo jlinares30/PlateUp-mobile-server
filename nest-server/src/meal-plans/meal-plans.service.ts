@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { MealPlan, MealPlanDocument } from './schemas/meal-plan.schema';
 import { CreateMealPlanDto, UpdateMealPlanDto, CloneMealPlanDto } from './dto/meal-plan.dto';
+import { CloudinaryService } from '../common/cloudinary/cloudinary.service';
 
 @Injectable()
 export class MealPlansService {
   constructor(
     @InjectModel(MealPlan.name) private mealPlanModel: Model<MealPlanDocument>,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   private formatPlan(plan: any) {
@@ -67,14 +69,16 @@ export class MealPlansService {
     return this.formatPlan(mealPlan);
   }
 
-  async create(userId: string, dto: CreateMealPlanDto, imagePath?: string) {
+  async create(userId: string, dto: CreateMealPlanDto, imageFile?: Express.Multer.File) {
     const planData: Record<string, any> = {
       ...dto,
       user: new Types.ObjectId(userId),
     };
 
-    if (imagePath) {
-      planData.image = imagePath;
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'mealplans');
+      planData.image = uploaded.url;
+      planData.imagePublicId = uploaded.publicId;
     }
 
     const newPlan = new this.mealPlanModel(planData);
@@ -110,11 +114,18 @@ export class MealPlansService {
     return { data: this.formatPlan(finalPlan) };
   }
 
-  async update(userId: string, id: string, dto: UpdateMealPlanDto, imagePath?: string) {
+  async update(userId: string, id: string, dto: UpdateMealPlanDto, imageFile?: Express.Multer.File) {
     const updateData: Record<string, any> = { ...dto };
 
-    if (imagePath) {
-      updateData.image = imagePath;
+    if (imageFile) {
+      const uploaded = await this.cloudinaryService.uploadImage(imageFile, 'mealplans');
+      updateData.image = uploaded.url;
+      updateData.imagePublicId = uploaded.publicId;
+
+      const oldPlan = await this.mealPlanModel.findById(id).exec();
+      if (oldPlan && oldPlan.imagePublicId) {
+        await this.cloudinaryService.deleteImage(oldPlan.imagePublicId);
+      }
     }
 
     const mealPlan = await this.mealPlanModel
@@ -144,6 +155,11 @@ export class MealPlansService {
     if (!mealPlan) {
       throw new NotFoundException('Meal plan not found');
     }
+
+    if (mealPlan.imagePublicId) {
+      await this.cloudinaryService.deleteImage(mealPlan.imagePublicId);
+    }
+
     return { message: 'Meal plan deleted successfully' };
   }
 }

@@ -1,17 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Query,
-  Body,
-  UseGuards,
-  Request,
-  UseInterceptors,
-  UploadedFile,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IngredientsService } from './ingredients.service';
@@ -42,7 +29,7 @@ export class IngredientsController {
     @Body() createIngredientDto: CreateIngredientDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.ingredientsService.create(req.user.id, createIngredientDto, file?.path);
+    return this.ingredientsService.create(req.user.id, createIngredientDto, file);
   }
 
   @Put(':id')
@@ -52,7 +39,7 @@ export class IngredientsController {
     @Body() updateIngredientDto: UpdateIngredientDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.ingredientsService.update(id, updateIngredientDto, file?.path);
+    return this.ingredientsService.update(id, updateIngredientDto, file);
   }
 
   @Delete(':id')

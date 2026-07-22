@@ -14,7 +14,7 @@ export class AuthController {
     @Body() registerDto: RegisterDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.authService.register(registerDto, file?.path);
+    return this.authService.register(registerDto, file);
   }
 
   @Post('login')

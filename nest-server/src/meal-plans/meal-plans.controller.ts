@@ -54,7 +54,7 @@ export class MealPlansController {
     @Body() dto: CreateMealPlanDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.mealPlansService.create(req.user.id, dto, file?.path);
+    return this.mealPlansService.create(req.user.id, dto, file);
   }
 
   @Put(':id')
@@ -65,7 +65,7 @@ export class MealPlansController {
     @Body() dto: UpdateMealPlanDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    return this.mealPlansService.update(req.user.id, id, dto, file?.path);
+    return this.mealPlansService.update(req.user.id, id, dto, file);
   }
 
   @Delete(':id')
