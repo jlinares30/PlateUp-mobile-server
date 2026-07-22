@@ -7,6 +7,9 @@ import { AuthModule } from './auth/auth.module';
 import { IngredientsModule } from './ingredients/ingredients.module';
 import { RecipesModule } from './recipes/recipes.module';
 import { MealPlansModule } from './meal-plans/meal-plans.module';
+import { PantryModule } from './pantry/pantry.module';
+import { ShoppingListModule } from './shopping-list/shopping-list.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { MealPlansModule } from './meal-plans/meal-plans.module';
     IngredientsModule,
     RecipesModule,
     MealPlansModule,
+    PantryModule,
+    ShoppingListModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
