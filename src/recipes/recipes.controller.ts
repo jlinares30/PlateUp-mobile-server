@@ -23,8 +23,12 @@ export class RecipesController {
   constructor(private readonly recipesService: RecipesService) {}
 
   @Get()
-  async getAll(@Query('query') query?: string) {
-    return this.recipesService.findAll(query);
+  async getAll(
+    @Query('query') query?: string,
+    @Query('category') category?: string,
+    @Query('tag') tag?: string,
+  ) {
+    return this.recipesService.findAll(query, category, tag);
   }
 
   @Get('my')

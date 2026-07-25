@@ -12,7 +12,7 @@ export class IngredientsService {
     private cloudinaryService: CloudinaryService,
   ) {}
 
-  async findAll(userId: string, query?: string) {
+  async findAll(userId: string, query?: string, category?: string, tag?: string) {
     const baseFilter = {
       $or: [
         { isSystem: true },
@@ -21,11 +21,21 @@ export class IngredientsService {
       ],
     };
 
-    const searchFilter = query
-      ? { name: { $regex: query, $options: 'i' } }
-      : {};
+    const filters: any[] = [baseFilter];
 
-    const finalFilter = { ...baseFilter, ...searchFilter };
+    if (query && query.trim()) {
+      filters.push({ name: { $regex: query.trim(), $options: 'i' } });
+    }
+
+    if (category && category.trim() && category.trim().toLowerCase() !== 'all') {
+      filters.push({ category: { $regex: `^${category.trim()}$`, $options: 'i' } });
+    }
+
+    if (tag && tag.trim()) {
+      filters.push({ tags: { $regex: tag.trim(), $options: 'i' } });
+    }
+
+    const finalFilter = filters.length > 1 ? { $and: filters } : baseFilter;
     return this.ingredientModel.find(finalFilter).exec();
   }
 

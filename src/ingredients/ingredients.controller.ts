@@ -13,8 +13,10 @@ export class IngredientsController {
   async getAll(
     @Request() req: { user: { id: string } },
     @Query('query') query?: string,
+    @Query('category') category?: string,
+    @Query('tag') tag?: string,
   ) {
-    return this.ingredientsService.findAll(req.user.id, query);
+    return this.ingredientsService.findAll(req.user.id, query, category, tag);
   }
 
   @Get(':id')

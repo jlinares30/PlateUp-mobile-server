@@ -14,17 +14,27 @@ export class RecipesService {
     private cloudinaryService: CloudinaryService,
   ) {}
 
-  async findAll(query?: string) {
-    const searchFilter = query
-      ? { title: { $regex: query, $options: 'i' } }
-      : {};
+  async findAll(query?: string, category?: string, tag?: string) {
+    const baseFilter = {
+      $or: [{ isSystem: true }, { isPublic: true }],
+    };
 
-    return this.recipeModel
-      .find({
-        ...searchFilter,
-        $or: [{ isSystem: true }, { isPublic: true }],
-      })
-      .exec();
+    const filters: any[] = [baseFilter];
+
+    if (query && query.trim()) {
+      filters.push({ title: { $regex: query.trim(), $options: 'i' } });
+    }
+
+    if (category && category.trim() && category.trim().toLowerCase() !== 'all') {
+      filters.push({ category: { $regex: `^${category.trim()}$`, $options: 'i' } });
+    }
+
+    if (tag && tag.trim()) {
+      filters.push({ tags: { $regex: tag.trim(), $options: 'i' } });
+    }
+
+    const finalFilter = filters.length > 1 ? { $and: filters } : baseFilter;
+    return this.recipeModel.find(finalFilter).exec();
   }
 
   async findMyRecipes(userId: string) {
