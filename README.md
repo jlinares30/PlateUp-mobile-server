@@ -135,6 +135,17 @@ When deploying to Render or similar PaaS platforms:
 
 ---
 
+## API Documentation (Swagger / OpenAPI)
+
+Interactive documentation with Swagger UI is integrated and available at:
+- **URL**: `http://localhost:<PORT>/api/docs` (default: `http://localhost:3000/api/docs` o `5001/api/docs`)
+- **Features**:
+  - Full schema inspection of all DTOs and responses.
+  - Interactive test execution for all endpoints directly from the browser.
+  - JWT Bearer Authentication support with the `Authorize` button.
+
+---
+
 ## API Endpoints
 
 ### Auth (`/api/auth`)
