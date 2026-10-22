@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Put, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+﻿import { Controller, Post, Body, Put, Delete, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, UpdateProfileDto, ResetPasswordDto } from './dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -53,5 +53,16 @@ export class AuthController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     return this.authService.updateProfile(req.user.id, updateProfileDto, file);
+  }
+
+  @Delete('profile')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Eliminar cuenta y datos del usuario autenticado' })
+  @ApiResponse({ status: 200, description: 'Cuenta eliminada exitosamente' })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  async deleteAccount(@Request() req: { user: { id: string } }) {
+    return this.authService.deleteAccount(req.user.id);
   }
 }

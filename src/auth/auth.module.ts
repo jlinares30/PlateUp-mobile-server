@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -7,12 +7,18 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { Recipe, RecipeSchema } from '../recipes/schemas/recipe.schema';
+import { MealPlan, MealPlanSchema } from '../meal-plans/schemas/meal-plan.schema';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { CloudinaryModule } from '../common/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Recipe.name, schema: RecipeSchema },
+      { name: MealPlan.name, schema: MealPlanSchema },
+    ]),
     PassportModule,
     CloudinaryModule,
     JwtModule.registerAsync({
