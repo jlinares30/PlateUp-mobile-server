@@ -4,7 +4,7 @@ name: Wake Plate Up Backend
 on:
   schedule:
     # 8:50 AM Lima = 13:50 UTC
-    - cron: '50 13 * * 1-6'
+    - cron: '45 15 * * *'
 
   # Permite ejecutar manualmente desde GitHub
   workflow_dispatch:
