@@ -1,0 +1,41 @@
+
+name: Wake Plate Up Backend
+
+on:
+  schedule:
+    # 8:50 AM, hora de Lima, lunes a sabado
+    - cron: '50 8 * * 1-6'
+      timezone: 'America/Lima'
+
+  # Permite ejecutar manualmente desde GitHub
+  workflow_dispatch:
+
+jobs:
+  wake-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Wake Render Backend
+        shell: bash
+        run: |
+          URL="https://plateup-mobile-server.onrender.com/api/health"
+
+          for attempt in 1 2 3; do
+            echo "Intento $attempt de despertar Plate Up"
+
+            HTTP_CODE=$(curl -L -s -o /dev/null \
+              --max-time 120 \
+              -w "%{http_code}" "$URL") || true
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Plate Up esta activo"
+              exit 0
+            fi
+
+            echo "Respuesta HTTP: $HTTP_CODE"
+            sleep 10
+          done
+
+          echo "No se pudo despertar Plate Up"
+          exit 1
