@@ -2,7 +2,7 @@ name: Wake Plate Up Backend
 
 on:
   repository_dispatch:
-    types: [wake-plateup]       # debe coincidir con el body de cron-job.org
+    types: [wake-plateup]       
   schedule:
     - cron: '45 13 * * 1-6'     # respaldo: 8:45 hora Lima
   workflow_dispatch:            # para ejecutarlo a mano desde la pestaña Actions
